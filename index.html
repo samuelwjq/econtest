@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Economics diagrams</title>
+<link rel="stylesheet" href="ew.css">
+</head>
+<body>
+
+<main id="menu">
+  <h1>H2 Economics Diagrams</h1>
+  <p class="lede">Interactive diagrams for lessons and revision. Widgets marked <span class="tag">Guided</span> are for teacher-led lessons; the rest are for independent practice.</p>
+  <div id="menu-list"></div>
+</main>
+
+<div id="app" hidden>
+  <header id="bar">
+    <a href="#" class="home">All topics</a>
+    <h1 id="w-title"></h1>
+    <span id="w-guided" class="tag" hidden>Guided</span>
+    <button id="glossary-btn" type="button" aria-pressed="false">Glossary</button>
+  </header>
+
+  <div id="stage">
+    <svg id="diagram" viewBox="0 0 600 520" role="img" aria-labelledby="diagram-title diagram-desc">
+      <title id="diagram-title"></title><desc id="diagram-desc"></desc>
+    </svg>
+    <div id="tip" role="note" hidden></div>
+  </div>
+
+  <aside id="panel">
+    <div id="panel-main">
+      <section id="stepper" hidden aria-live="polite">
+        <p id="step-count"></p>
+        <h2 id="step-title"></h2>
+        <div id="step-text"></div>
+        <div class="step-nav"><button id="step-back" type="button">Back</button><button id="step-next" type="button">Next</button></div>
+        <p id="step-msg" role="status"></p>
+      </section>
+      <div id="controls"></div>
+      <label class="check"><input type="checkbox" id="c-tips"> Tooltips</label>
+      <div id="result" aria-live="polite"></div>
+      <div id="notes"></div>
+      <details id="about" hidden><summary>About this diagram</summary><div id="about-text"></div></details>
+      <div class="actions">
+        <button id="reset" type="button">Reset</button>
+        <details class="save">
+          <summary>Save diagram</summary>
+          <fieldset class="radio"><legend>Image style</legend>
+            <label><input type="radio" name="img-style" value="colour" checked> Colour</label>
+            <label><input type="radio" name="img-style" value="grey"> Greyscale (for printing)</label>
+          </fieldset>
+          <button id="download" type="button">Download PNG</button>
+          <button id="copy" type="button">Copy</button>
+          <p id="save-status" role="status"></p>
+        </details>
+      </div>
+    </div>
+    <section id="glossary" hidden>
+      <div class="glossary-head"><h2>Glossary</h2><button id="glossary-close" type="button">Back to diagram controls</button></div>
+      <div id="glossary-list"></div>
+    </section>
+  </aside>
+</div>
+
+<script src="ew.js"></script>
+<script src="glossary.js"></script>
+<script src="tips.js"></script>
+<script src="topics/demand-supply.js"></script>
+<script src="topics/elasticities.js"></script>
+<script src="topics/ppc.js"></script>
+<script src="topics/government-intervention.js"></script>
+<script src="topics/externalities.js"></script>
+<script src="topics/market-failure-info.js"></script>
+<script src="topics/macro.js"></script>
+<script>
+// Topic menu (Title Case for topic and widget names). Entries ending in .html are older pages not yet moved onto the shared engine.
+EW.start([
+  ['Topic 1: Scarcity, Choice and Opportunity Cost', [
+    ['ppc', 'Production Possibility Curve (PPC)']]],
+  ['Topic 2: Demand and Supply', [
+    ['ds-guided', 'Price Adjustment Process', true],
+    ['ds-single', 'Demand and Supply: Single Shift'],
+    ['ds-simultaneous', 'Demand and Supply: Simultaneous Shifts']]],
+  ['Topic 3: Elasticities', [
+    ['ped', 'Price Elasticity of Demand (PED)'],
+    ['pes', 'Price Elasticity of Supply (PES)'],
+    ['xed', 'Cross Elasticity of Demand (XED)'],
+    ['yed', 'Income Elasticity of Demand (YED)']]],
+  ['Topic 4: Government Intervention', [
+    ['government-intervention', 'Government Intervention in Markets']]],
+  ['Topic 5: Market Failure', [
+    ['guided-externalities', 'Externalities as a Source of Market Failure', true],
+    ['negative-externalities', 'Negative Externalities'],
+    ['ne-measures', 'Government Measures: Negative Externalities'],
+    ['positive-externalities', 'Positive Externalities'],
+    ['pe-measures', 'Government Measures: Positive Externalities'],
+    ['guided-imperfect-information', 'Imperfect Information as a Source of Market Failure', true],
+    ['imperfect-information', 'Imperfect Information'],
+    ['imperfect-information-measures', 'Government Measures: Imperfect Information']]],
+  ['Topic 7: Introduction to the Macroeconomy', [
+    ['ad-factors', 'Factors Affecting Aggregate Demand'],
+    ['as-factors', 'Factors Affecting Aggregate Supply'],
+    ['ad-as', 'AD–AS Equilibrium']]],
+  ['Topic 8: Macroeconomic Issues and Causes', [
+    ['macro-issues', 'Macroeconomic Issues and Their Causes']]],
+  ['Topic 9: Macroeconomic Policy', [
+    ['fiscal-policy', 'Fiscal Policy'],
+    ['monetary-policy', 'Monetary Policy (Interest and Exchange Rates)'],
+    ['supply-side-policy', 'Supply-Side Policies']]],
+]);
+</script>
+</body>
+</html>

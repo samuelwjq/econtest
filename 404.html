@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Economics diagrams</title>
+<script>
+// GitHub Pages shows this page for any missing address. Old single-widget pages (e.g. Fiscal_Policy.html) now live
+// inside index.html, so links saved before the update are forwarded to the same widget there.
+const moved = {
+  Production_Possibility_Curve: 'ppc',
+  Guided_Price_Adjustment_Process: 'ds-guided',
+  Demand_Supply_Single_Shifts: 'ds-single',
+  Demand_Supply_Simultaneous_Shifts: 'ds-simultaneous',
+  Elasticities_PED: 'ped',
+  Elasticities_PES: 'pes',
+  Elasticities_XED: 'xed',
+  Elasticities_YED: 'yed',
+  Government_Intervention: 'government-intervention',
+  Guided_Externalities: 'guided-externalities',
+  Negative_Externalities: 'negative-externalities',
+  NE_Govt_Measures: 'ne-measures',
+  Positive_Externalities: 'positive-externalities',
+  PE_Govt_Measures: 'pe-measures',
+  Guided_Imperfect_Information: 'guided-imperfect-information',
+  Imperfect_Information_Two_Types: 'imperfect-information',
+  Imperfect_Information_Policies: 'imperfect-information-measures',
+  Aggregate_Demand_Factors: 'ad-factors',
+  Aggregate_Supply_Factors: 'as-factors',
+  AD_AS_Equilibrium: 'ad-as',
+  Macro_Issues_and_Causes: 'macro-issues',
+  Fiscal_Policy: 'fiscal-policy',
+  Monetary_Policy: 'monetary-policy',
+  Supply_Side_Policy: 'supply-side-policy'
+};
+const name = location.pathname.split('/').pop().replace(/\.html$/, '');
+const base = location.pathname.slice(0, location.pathname.lastIndexOf('/') + 1);
+location.replace(base + 'index.html' + (moved[name] ? '#' + moved[name] : ''));
+</script>
+</head>
+<body><p><a href="index.html">Economics diagrams</a></p></body>
+</html>
