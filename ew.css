@@ -21,7 +21,7 @@ input[type="range"]:focus-visible { outline: 1px dotted var(--ink); }
 .tag { font-size: 12px; letter-spacing: .04em; color: var(--tag); border: 1px solid currentColor; border-radius: 2px; padding: 0 5px; white-space: nowrap; }
 
 /* Topic menu */
-#menu { max-width: 720px; margin: 0 auto; padding: 32px 20px 48px; }
+#menu { max-width: 960px; margin: 0 auto; padding: 32px 20px 48px; }
 #menu h1 { font: 400 30px/1.2 var(--serif); margin: 0 0 8px; }
 .lede { color: var(--muted); margin: 0 0 24px; }
 #menu h2 { font-size: 15px; font-weight: 600; margin: 24px 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--rule); }
@@ -64,16 +64,19 @@ legend, .slider label { padding: 0; margin-bottom: 4px; font-weight: 600; }
 .slider .ends.ticked { height: 1.4em; }
 .readout { font-weight: 400; color: var(--muted); }
 .hint { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
-#about { margin-top: 14px; }
-#about summary, #notes summary { cursor: pointer; font-weight: 600; }
-#about-text, .model-note { font-size: 13px; color: var(--muted); }
-#about-text p, #about-text ul { margin: 6px 0; }
+.model-note { font-size: 13px; color: var(--muted); }
 #notes ul { margin: 0; padding-left: 18px; }
 #glossary .note { font-size: 13px; color: var(--muted); }
 .check { display: block; margin: 0 0 6px; }
 #controls .check { margin-bottom: 6px; }
 #controls:not([hidden]) + .check { padding-top: 10px; border-top: 1px solid var(--rule); }
-#result { margin: 16px 0 0; }
+#result { margin: 0; }
+.side-section { margin: 0 0 20px; }
+.side-head { font-size: 15px; font-weight: 700; margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--ink, #222); }
+#controls-section > #controls:not([hidden]) + .check { padding-top: 10px; border-top: 1px solid var(--rule); }
+.select { display: flex; flex-direction: column; gap: 4px; }
+.select .lbl { font-weight: 600; }
+.select select { font: inherit; padding: 6px 8px; border: 1px solid var(--rule); border-radius: 4px; background: #fff; max-width: 100%; }
 #result table { width: 100%; border-collapse: collapse; }
 #result th, #result td { text-align: left; padding: 3px 6px 3px 0; border-bottom: 1px solid var(--rule); font-weight: 400; }
 #result thead th { color: var(--muted); font-size: 13px; }
@@ -106,3 +109,23 @@ legend, .slider label { padding: 0; margin-bottom: 4px; font-weight: 600; }
   #bar { gap: 8px; padding: 8px 10px; }
   #bar h1 { font-size: 17px; flex: 1; min-width: 0; }
 }
+
+/* Index: search, sticky topic bar, card layout */
+#menu-tools { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 10px 0 8px; margin: 12px 0 0; border-bottom: 1px solid var(--rule); }
+#menu-search { width: 100%; box-sizing: border-box; font: inherit; padding: 9px 12px; border: 1px solid #b9b6af; border-radius: 6px; background: #fff; }
+#topic-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+#topic-bar button { padding: 3px 10px; font-size: 13px; border-radius: 999px; }
+#menu .topic { scroll-margin-top: 110px; }
+#menu .topic[hidden], #menu li[hidden] { display: none; }
+#menu ul.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin-top: 10px; }
+#menu .cards li { padding: 0; }
+.card { display: flex; flex-direction: column; height: 100%; text-decoration: none; color: var(--ink); background: #fff; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.card:hover, .card:focus-visible { border-color: #8a8780; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.card-body { padding: 8px 10px 10px; }
+.card-name { font-weight: 600; font-size: 14px; }
+.thumb { position: relative; height: 84px; display: flex; align-items: center; justify-content: center; color: #6b6a64; background: #ece9df; }
+.thumb svg { width: 64px; height: 44px; }
+.thumb .num { position: absolute; left: 8px; top: 4px; font: 700 20px/1 var(--serif); opacity: .35; }
+.thumb.t0 { background: #e8eef6; } .thumb.t1 { background: #f3ebe0; } .thumb.t2 { background: #e8f1e8; }
+.thumb.t3 { background: #f1e8f0; } .thumb.t4 { background: #f6efd9; } .thumb.t5 { background: #e6efee; }
+#menu-empty { color: var(--muted); margin-top: 24px; }

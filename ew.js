@@ -314,6 +314,8 @@ const EW = (() => {
     const id = 'c-' + c.id;
     if (c.type === 'check') return html('label', { class: 'check' }, `<input type="checkbox" id="${id}"> <span class="lbl"></span>`);
     if (c.type === 'radio') return html('fieldset', { class: 'radio' }, '<legend class="lbl"></legend><div class="opts"></div>');
+    // Dropdown for long option lists: same options format and state handling as radio.
+    if (c.type === 'select') return html('div', { class: 'select' }, `<label for="${id}" class="lbl"></label><select id="${id}"></select>`);
     // Sliders: ticks = [[value, 'label'], ...] marks points on the scale; otherwise the two ends (and 0) are captioned.
     // max may be a function of the state; format(value, state) shows a live readout beside the label.
     const max = typeof c.max === 'function' ? 100 : c.max, at = v => (v - c.min) / (max - c.min) * 100;
@@ -335,6 +337,11 @@ const EW = (() => {
         }
         if (!opts.some(([v]) => v === state[c.id]) && state[c.id] !== '') state[c.id] = opts[0][0];
         box.querySelectorAll('input').forEach(r => { r.checked = r.value === state[c.id]; });
+      } else if (c.type === 'select') {
+        const opts = val(c.options, state), key = JSON.stringify(opts), sel = $('#c-' + c.id);
+        if (sel.dataset.key !== key) { sel.dataset.key = key; sel.innerHTML = opts.map(([v, t]) => `<option value="${v}">${t}</option>`).join(''); }
+        if (!opts.some(([v]) => v === state[c.id]) && state[c.id] !== '') state[c.id] = opts[0][0];
+        sel.value = state[c.id];
       } else if (c.type === 'check') $('#c-' + c.id).checked = state[c.id];
       else {
         const input = $('#c-' + c.id);
@@ -342,7 +349,7 @@ const EW = (() => {
         if (typeof c.max === 'function') {
           m = c.max(state);
           input.max = m;
-          state[c.id] = Math.min(state[c.id], m);
+          state[c.id] = Math.min(want[c.id] ?? state[c.id], m);
         }
         if (!c.ticks) {
           const ends = val(c.ends, state) || [c.min, m];
@@ -358,14 +365,19 @@ const EW = (() => {
     $('#c-tips').checked = state.tips;
   }
   function readControl(c, e) {
-    state[c.id] = c.type === 'check' ? e.target.checked : c.type === 'radio' ? e.target.value : +e.target.value;
+    state[c.id] = c.type === 'check' ? e.target.checked : c.type === 'radio' || c.type === 'select' ? e.target.value : +e.target.value;
+    if (c.type === 'slider') want[c.id] = state[c.id];
     c.onChange?.(state);
     syncControls();
     render();
   }
+  // The value the user last set on each slider. A slider whose maximum depends on other settings is only shown clamped,
+  // so it returns to the user's value when room returns.
+  let want = {};
   function reset() {
+    want = {};
     state = { tips: true, step: 1 };
-    for (const c of def.controls) state[c.id] = c.value ?? (c.type === 'check' ? false : c.type === 'radio' ? val(c.options, state)[0][0] : 0);
+    for (const c of def.controls) state[c.id] = c.value ?? (c.type === 'check' ? false : c.type === 'radio' || c.type === 'select' ? val(c.options, state)[0][0] : 0);
     syncControls();
     render();
   }
@@ -382,7 +394,9 @@ const EW = (() => {
     if (def.steps) renderStep(out);
     buildGlossary();
     $('#result').innerHTML = out.result || '';
+    $('#result-section').hidden = !out.result;   // section headers appear only when there is content
     $('#notes').innerHTML = out.notes || '';
+    $('#notes-section').hidden = !out.notes;
     $('#diagram-desc').textContent = (out.desc || '').replace(/_(\{[^}]*\}|[A-Za-z0-9]+)/g, '$1');   // plain text for screen readers: P_0 -> P0
   }
 
@@ -424,8 +438,6 @@ const EW = (() => {
       box.append(n);
     }
 
-    $('#about').hidden = !def.about;
-    $('#about-text').innerHTML = def.about || '';
     $('#glossary-btn').hidden = !def.glossary;
     showGlossary(false);
     reset();
@@ -512,9 +524,42 @@ const EW = (() => {
   }
 
   /* ---------- Topic menu and routing ---------- */
+  // Extra search words per widget (search also matches the widget name and topic title).
+  const KEYWORDS = {
+    ppc: 'opportunity cost production possibility frontier growth capital consumer goods scarcity choice',
+    'ds-guided': 'demand supply equilibrium shortage surplus price adjustment', 'ds-single': 'demand supply equilibrium shift shortage surplus', 'ds-simultaneous': 'demand supply equilibrium shift both curves',
+    ped: 'price elasticity demand elastic inelastic total revenue', pes: 'price elasticity supply elastic inelastic', xed: 'cross elasticity substitutes complements', yed: 'income elasticity normal inferior luxury necessity',
+    'government-intervention': 'tax subsidy price ceiling price floor minimum wage quota deadweight loss welfare surplus indirect tax',
+    'guided-externalities': 'externality spillover social cost benefit market failure', 'negative-externalities': 'externality pollution marginal external cost MEC over-consumption',
+    'ne-measures': 'tax quota ban pollution research development education campaigns regulation', 'positive-externalities': 'externality marginal external benefit MEB under-consumption merit goods',
+    'pe-measures': 'subsidy provision merit goods education joint provision free provision', 'guided-imperfect-information': 'asymmetric information market failure',
+    'imperfect-information': 'asymmetric information underestimate overestimate', 'imperfect-information-measures': 'education legislation tax subsidy compulsory consumption information',
+    'ad-factors': 'aggregate demand AD consumption investment government expenditure exports imports', 'as-factors': 'aggregate supply AS SRAS LRAS cost of production productivity',
+    'ad-as': 'aggregate demand supply equilibrium AD-AS GPL RNY', 'macro-issues': 'growth inflation unemployment deflation output gap demand-pull cost-push',
+    'fiscal-policy': 'government spending tax budget expansionary contractionary multiplier', 'monetary-policy': 'interest rate exchange rate central bank depreciation appreciation',
+    'supply-side-policy': 'education training research competition productivity grants',
+  };
   function buildMenu(menu) {
-    $('#menu-list').innerHTML = menu.map(([topic, items]) => `<section><h2>${topic}</h2><ul>${items.map(([ref, name, guided]) =>
-      `<li><a href="${ref.endsWith('.html') ? ref : '#' + ref}">${name}</a>${guided ? ' <span class="tag">Guided</span>' : ''}</li>`).join('')}</ul></section>`).join('');
+    // Placeholder thumbnail: topic number over a generic axes-and-curves glyph (to be replaced by real mini-diagrams later).
+    const thumb = n => `<div class="thumb t${n % 6}" aria-hidden="true"><span class="num">${n}</span><svg viewBox="0 0 60 40"><path d="M8 4V34H56" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 8L50 30" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 30L50 8" stroke="currentColor" stroke-width="2" fill="none" opacity=".55"/></svg></div>`;
+    $('#menu-list').innerHTML = menu.map(([topic, items], i) => { const n = +(topic.match(/Topic (\d+)/)?.[1] ?? i + 1);
+      return `<section class="topic" id="topic-${n}" data-topic="${topic.toLowerCase()}"><h2>${topic}</h2><ul class="cards">${items.map(([ref, name, guided]) =>
+        `<li data-name="${(name + ' ' + (KEYWORDS[ref] || '')).toLowerCase()}"><a class="card" href="${ref.endsWith('.html') ? ref : '#' + ref}">${thumb(n)}<span class="card-body"><span class="card-name">${name}</span>${guided ? ' <span class="tag">Guided</span>' : ''}</span></a></li>`).join('')}</ul></section>`; }).join('');
+    // Sticky topic bar: jumps to a topic without changing the URL hash (the hash is the widget route).
+    $('#topic-bar').innerHTML = menu.map(([topic], i) => { const n = +(topic.match(/Topic (\d+)/)?.[1] ?? i + 1);
+      return `<button type="button" data-target="topic-${n}" title="${topic}">Topic ${n}</button>`; }).join('');
+    $('#topic-bar').onclick = e => { const t = e.target.closest('button'); if (t) document.getElementById(t.dataset.target).scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+    // Search: matches widget names and topic titles.
+    const search = $('#menu-search');
+    search.oninput = () => {
+      const q = search.value.trim().toLowerCase(); let shown = 0;
+      document.querySelectorAll('#menu-list .topic').forEach(sec => {
+        const topicHit = q && sec.dataset.topic.includes(q); let any = 0;
+        sec.querySelectorAll('li').forEach(li => { const hit = !q || topicHit || li.dataset.name.includes(q); li.hidden = !hit; if (hit) any++; });
+        sec.hidden = !any; shown += any;
+      });
+      $('#menu-empty').hidden = shown > 0;
+    };
   }
   function route() {
     const id = location.hash.slice(1);

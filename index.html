@@ -11,7 +11,12 @@
 <main id="menu">
   <h1>H2 Economics Diagrams</h1>
   <p class="lede">Interactive diagrams for lessons and revision. Widgets marked <span class="tag">Guided</span> are for teacher-led lessons; the rest are for independent practice.</p>
+  <div id="menu-tools">
+    <input type="search" id="menu-search" placeholder="Search widgets, for example elasticity or tax" aria-label="Search widgets" autocomplete="off">
+    <nav id="topic-bar" aria-label="Jump to topic"></nav>
+  </div>
   <div id="menu-list"></div>
+  <p id="menu-empty" hidden>No widgets match your search.</p>
 </main>
 
 <div id="app" hidden>
@@ -38,11 +43,19 @@
         <div class="step-nav"><button id="step-back" type="button">Back</button><button id="step-next" type="button">Next</button></div>
         <p id="step-msg" role="status"></p>
       </section>
-      <div id="controls"></div>
-      <label class="check"><input type="checkbox" id="c-tips"> Tooltips</label>
-      <div id="result" aria-live="polite"></div>
-      <div id="notes"></div>
-      <details id="about" hidden><summary>About this diagram</summary><div id="about-text"></div></details>
+      <section class="side-section" id="controls-section">
+        <h2 class="side-head">Controls</h2>
+        <div id="controls"></div>
+        <label class="check"><input type="checkbox" id="c-tips"> Tooltips</label>
+      </section>
+      <section class="side-section" id="result-section" hidden>
+        <h2 class="side-head">Summary</h2>
+        <div id="result" aria-live="polite"></div>
+      </section>
+      <section class="side-section" id="notes-section" hidden>
+        <h2 class="side-head">Price Adjustment Process</h2>
+        <div id="notes"></div>
+      </section>
       <div class="actions">
         <button id="reset" type="button">Reset</button>
         <details class="save">

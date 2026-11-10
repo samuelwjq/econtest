@@ -16,6 +16,8 @@ Object.assign(EW.tips, {
 
   /* ----- Equilibrium points and values ----- */
   'eq.initial': 'Initial equilibrium E₀: quantity demanded equals quantity supplied at P₀ and Q₀.',
+  'ref.curve': 'Reference curve: pivoted around E₀ with a different elasticity, so you can compare the effect of the same change.',
+  'ref.eq': 'Equilibrium on the reference curve after the same change (E₂, P₂, Q₂).',
   'eq.new': 'New equilibrium E₁: the current demand and supply curves intersect at P₁ and Q₁.',
   'price.initial': 'Initial equilibrium price P₀.',
   'price.new': 'New equilibrium price P₁.',
@@ -43,8 +45,8 @@ Object.assign(EW.tips, {
 
   /* ----- Production possibility curve ----- */
   'ppc.curve': ({ label }) => `${label}: maximum attainable output combinations.`,
-  'ppc.capacityX': 'Maximum output of good X when all resources produce X.',
-  'ppc.capacityY': 'Maximum output of good Y when all resources produce Y.',
+  'ppc.capacityX': 'Maximum output of consumer goods when all resources produce consumer goods.',
+  'ppc.capacityY': 'Maximum output of capital goods when all resources produce capital goods.',
   'ppc.point': ({ label, x, y }) => `${label}: output combination (${x}, ${y}).`,
   'ppc.start': 'A is the initial output. The change is always measured from A to B.',
   'ppc.reallocation': 'A → B along the same PPC: pure reallocation.',
