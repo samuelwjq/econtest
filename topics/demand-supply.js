@@ -129,7 +129,7 @@
           : [`${qd > qs ? 'Shortage' : 'Surplus'} at P_0`, `${qd > qs ? 'Q_s to Q_d' : 'Q_d to Q_s'} units, leading to ${qd > qs ? 'upward' : 'downward'} pressure on price`],
         ['Equilibrium Price', EW.chg(p - 50, 'P_0', 'P_1')],
         ['Equilibrium Quantity', EW.chg(q - 50, 'Q_0', 'Q_1')]]),
-      notes: `<h2>Price adjustment process</h2><ol>${steps.map(t => `<li>${bold(t)}</li>`).join('')}</ol>`,
+      notes: `<ol>${steps.map(t => `<li>${bold(t)}</li>`).join('')}</ol>`,
       desc: `Equilibrium price ${change(p - 50)}, quantity ${change(q - 50)}. ${steps.join(' ')}`,
     };
   }

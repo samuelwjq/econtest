@@ -40,7 +40,6 @@
     const t = (v - p.min) / (p.max - p.min);
     return t < 0.34 ? 'low' : t < 0.67 ? 'moderate' : 'high';
   }
-  const fmt = t => t.replace(/\b([PWQL])_([a-z]+)/g, '$1<sub>$2</sub>');
 
   function draw(P, st, C) {
     const k = st.policy, pol = policies[k], v = k === 'none' ? 0 : st[k], m = calculate(k, v), lab = k === 'wage';
@@ -123,16 +122,6 @@
       if (k !== 'quota') P.line([P.r + 40, P.Y(50)], [P.r + 40, P.Y(k === 'direct' ? m.pp : m.pc)], { color: C.grey, width: 1.5, arrow: true, px: true, tip: ['gi.pressure', { shortage }] });
     }
 
-    // Written explanation (from the original widget).
-    let note = 'Demand equals supply at E₀. With no externalities, the market equilibrium maximises total welfare.', assumption = '';
-    if (k === 'ceiling') { note = m.binding ? 'Effective ceiling: price falls to P₁ and the quantity traded falls to Q₁. Quantity demanded exceeds quantity supplied, creating a persistent shortage.' : 'Not effective ceiling: the ceiling is at or above P₀, so the market remains at E₀.'; assumption = 'Legal-market welfare assumes scarce units go to buyers with the highest willingness to pay. P_bm shows the potential black market clearing price for the available quantity; it is illustrative and does not change the legal-market welfare areas.'; }
-    if (k === 'floor' || k === 'wage') { note = m.binding ? (lab ? 'Effective minimum wage: wage rises to W₁ and employment falls to L₁. Labour supplied exceeds labour demanded, creating unemployment. The reduction in employment from L₀ to L₁ represents retrenchment.' : 'Effective floor: price rises to P₁ and the quantity traded falls to Q₁. Quantity supplied exceeds quantity demanded, creating a persistent surplus.') : `Not effective ${lab ? 'minimum wage' : 'floor'}: the control is at or below ${lab ? 'W₀' : 'P₀'}, so the market remains at E₀.`; assumption = lab ? 'Labour demanded determines employment. Workers with the lowest reservation wages are employed.' : 'Excess supply is left unsold; the government does not purchase it. The lowest-cost suppliers make the sales.'; }
-    if (k === 'quota') { note = m.binding ? 'Effective quota: quantity traded falls to Q_quota. Producers set P₁ at the demand curve for this restricted quantity.' : 'Not effective quota: the limit is at or above Q₀, so the market remains at E₀.'; assumption = 'Producers set the market-clearing price for the quota quantity. Quota rights are allocated free to producers, who retain the quota rent within PS. At a zero quota there are no trades; the displayed price is the limiting demand price.'; }
-    if (k === 'specific') note = v > 0 ? 'The tax shifts supply vertically upwards. P₁ is the price paid by consumers; producers retain a lower price after paying the tax. Quantity traded falls.' : 'No tax is applied, so the market remains at E₀.';
-    if (k === 'advalorem') { note = v > 0 ? 'The tax raises each supply price in proportion to its pre-tax value. P₁ is the price paid by consumers; producers retain a lower price after paying the tax. Quantity traded falls.' : 'No tax is applied, so the market remains at E₀.'; assumption = 'The tax rate is applied to the price received by producers: P_c = (1 + tax rate) × P_p. The vertical tax gap widens as the pre-tax price rises.'; }
-    if (k === 'indirect') note = v > 0 ? 'The subsidy shifts supply downwards. P₁ is the price paid by consumers; producers receive a higher price including the subsidy. Quantity traded rises.' : 'No subsidy is applied, so the market remains at E₀.';
-    if (k === 'direct') { note = v > 0 ? 'The consumer subsidy shifts demand upwards. P₁ is the price received by producers; consumers pay a lower effective price after deducting the subsidy. Quantity traded rises.' : 'No subsidy is applied, so the market remains at E₀.'; assumption = 'The subsidy is tied to each unit purchased. The direct and indirect subsidies produce the same final consumer price, producer price, quantity and welfare for the same per-unit amount.'; }
-    const formula = 'Total welfare = CS + PS' + (m.fiscal === 'revenue' ? ' + government revenue' : m.fiscal === 'expenditure' ? ' − government expenditure' : '');
 
     // Summary table: not shown for "No policy".
     const eff = m.binding ? 'Effective' : 'Not Effective', CHG = EW.CHG, chg = EW.chg;
@@ -151,8 +140,7 @@
     if (k !== 'none') rows.push(['Deadweight Loss', m.dwl > 1e-7 ? 'Increases' : 'None'], ['Total Welfare', m.tw < 2500 - 1e-7 ? 'Decreases' : 'Unchanged']);
     return {
       result: rows.length ? EW.summary(rows) : '',
-      notes: `<h2>${pol.name}</h2><p>${fmt(note)}</p>${assumption ? `<p class="model-note">${fmt(assumption)}</p>` : ''}<p class="model-note">${formula}</p>`,
-      desc: `${pol.name}. ${note} ${formula}`,
+      desc: `${pol.name}. ${rows.map(r => r.join(': ')).join('. ')}`,
     };
   }
 
@@ -184,9 +172,8 @@
       adValoremTax: 'In this widget, the percentage is applied to the pre-tax price received by producers: P<sub>c</sub> = (1 + tax rate) × P<sub>p</sub>.',
       directSubsidy: 'This widget models a fixed subsidy per unit bought.',
     },
-    about: '<p>Consumer and producer surplus assume that traded units go to buyers with the highest willingness to pay and are supplied by sellers with the lowest costs. Government administration costs and costs of raising public funds are excluded. All values use illustrative units. P<sub>c</sub> is the price paid by consumers; P<sub>p</sub> is the price received by producers.</p>',
     controls: [
-      { type: 'radio', id: 'policy', label: 'Government policy', options: Object.entries(policies).map(([k, p]) => [k, p.name]),
+      { type: 'select', id: 'policy', label: 'Government policy', options: Object.entries(policies).map(([k, p]) => [k, p.name]),
         onChange: st => { st.cs = st.ps = st.g = false; } },
       ...sliders,
       { type: 'check', id: 'cs', label: 'Consumer surplus', showIf: st => st.policy !== 'wage' },

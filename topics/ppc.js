@@ -31,7 +31,7 @@
     // Sampled by angle (x = a·cos^(2/n), y = b·sin^(2/n)) so the curve stays smooth where it turns steep near the X-axis.
     const curvePts = (aa, bb) => Array.from({ length: 121 }, (_, i) => { const th = Math.PI / 2 * i / 120, n = power(st);
       return [aa * Math.pow(Math.cos(th), 2 / n), bb * Math.pow(Math.sin(th), 2 / n)]; });
-    P.axes('Quantity of good Y', 'Quantity of good X');
+    P.axes('Capital Goods', 'Consumer Goods');
     if (shifted) {
       P.path(curvePts(100, 100), { color: C.demand0, tip: ['ppc.curve', { label: 'PPC₀' }] });
       P.pointLabel([82, frontier(st, 82)], 'PPC_0', { color: C.demand0 });
@@ -41,7 +41,6 @@
     P.qLabel(a, round(a), { color: C.demand, tip: 'ppc.capacityX' });
     P.pLabel(b, round(b), { color: C.demand, tip: 'ppc.capacityY' });
 
-    const tradeoff = st.shape === 0 ? 'Along a straight PPC, equal increases in X require equal sacrifices of Y.' : 'With a PPC concave to the origin, producing more X requires sacrificing ever-increasing amounts of Y.';
     const msg = { inside: ['Attainable · productively inefficient', 'More of at least one good is possible without sacrificing the other.'],
       frontier: ['Attainable · productively efficient', 'More of one good requires sacrificing the other.'],
       outside: ['Currently unattainable', 'Beyond available resources and the present state of technology.'] };
@@ -52,7 +51,7 @@
       P.qLabel(p.x, round(p.x), { color });
       P.pLabel(p.y, round(p.y), { color });
     };
-    let rows, explanation, model;
+    let rows;
 
     if (st.mode === 'points') {
       const p = freePoint(st, st.ax, st.ay), status = classify(st, p);
@@ -61,8 +60,6 @@
         ['Attainability', `${status === 'outside' ? 'Unattainable' : 'Attainable'} combination of goods`],
         status !== 'outside' && ['Productive Efficiency', status === 'frontier' ? 'Productively Efficient' : 'Productively Inefficient'],
         ['Implication', msg[status][1]]];
-      explanation = `${msg[status][1]} Output combinations on or inside the PPC are attainable. ${status === 'frontier' ? tradeoff + ' ' : ''}Being on the PPC establishes productive efficiency; it does not establish allocative efficiency.`;
-      model = `Available resources and the state of technology are fixed for a given PPC. Coordinates are rounded to whole units; precise values determine the point’s classification. ${tradeoff}`;
     } else if (st.mode === 'actual') {
       const A = boundPoint(st, st.bax, st.bay), B = boundPoint(st, st.bbx, st.bby), ch = transition(st, A, B);
       if (ch.type === 'none') {
@@ -76,16 +73,9 @@
         mark(B, 'B', C.ink, ['ppc.point', { label: 'B', x: round(B.x), y: round(B.y) }]);
       }
       const sub = { none: 'A and B show the same output combination', positive: 'A → B moves closer to or onto the PPC', negative: 'A → B moves towards the origin', reallocation: 'Both points on the same PPC · productively efficient', mixed: 'Output mix changes without moving closer to the PPC' };
-      const details = { none: 'A and B coincide, so there is no output change.',
-        positive: 'An increase in the real output of a country is represented here by a movement from A inside the PPC to B closer to or on the PPC, with available resources and the state of technology unchanged.',
-        negative: 'A movement from A to B towards the origin is labelled negative actual growth here. Productive capacity remains unchanged.',
-        reallocation: 'A and B are both on the same PPC. The move changes the output mix: producing more of one good requires sacrificing the other. It illustrates pure reallocation rather than an expansion in capacity.',
-        mixed: 'The output mix changes without moving closer to or further from the frontier. This is labelled reallocation.' };
       rows = [['Change from A to B', EW.tc(ch.heading)],
         ['Description', sub[ch.type]],
         ['PPC', 'Since the quality and quantity of resources and level of technology is unchanged, the economy’s productive capacity remains the same. Hence, PPC remains the same.']];
-      explanation = `${details[ch.type]} The comparison always runs from A to B.`;
-      model = `A and B are attainable output combinations. The change is always A → B: towards the PPC shows actual growth; towards the origin shows negative actual growth. Both on the PPC shows pure reallocation. This is a simplified resource-utilisation illustration, not a calculation of real output. ${tradeoff}`;
     } else {
       if (shifted) for (const u of [0, 0.5, 1]) {
         const from = [100 * u, frontier(st, 100 * u)], to = [a * u, frontier(st, a * u, a, b)];
@@ -95,13 +85,10 @@
       rows = [['Productive Capacity', { expansion: 'Increases', contraction: 'Decreases', mixed: 'Mixed', none: 'Unchanged' }[kind]],
         ['Potential Growth', { expansion: 'Potential Growth', contraction: 'Negative Potential Growth', mixed: 'Mixed Capacity Changes', none: 'Zero' }[kind]],
         ['PPC', { expansion: 'Shifts Outwards', contraction: 'Shifts Inwards', mixed: 'One capacity increases while the other decreases', none: 'Unchanged' }[kind]]];
-      explanation = 'Outward movement of the PPC represents greater productive capacity; inward movement represents reduced capacity. Each slider changes the maximum output of one good; move both to expand or contract the whole PPC. The lighter PPC₀ remains the initial reference.';
-      model = 'The smooth PPC shape is preserved. Capacity intercepts range from 40 to 140 illustrative units. Actual output is not specified in this case.';
     }
     return {
       result: EW.summary(rows),
-      notes: `<h2>Explanation</h2><p>${explanation}</p><p class="model-note">${model}</p>`,
-      desc: `${rows.filter(Boolean).map(r => r.join(': ')).join('. ')}. ${explanation}`,
+      desc: rows.filter(Boolean).map(r => r.join(': ')).join('. '),
     };
   }
 
@@ -113,18 +100,17 @@
       'opportunityCost', 'rateOfOpportunityCostIncurred', 'constantOpportunityCost', 'lawOfIncreasingOpportunityCost', 'productiveCapacity', 'productiveEfficiency',
       'allocativeEfficiency', 'unemployment', 'underemployment', 'inefficiency', 'actualEconomicGrowth', 'negativeActualGrowth', 'potentialEconomicGrowth',
       'pureReallocationAlongThePpc', 'capitalGoodsProducerGoods', 'consumerGoods'],
-    about: '<p>A two-output economy within a specified period of time. Available resources and the state of technology are fixed for a given PPC. In the actual-growth exploration, movements closer to the frontier are labelled actual growth and movements towards the origin negative actual growth. This is a simplified illustration of resource utilisation, rather than a calculation of real output across different output mixes. Changing curvature compares resource adaptability with fixed intercepts.</p>',
     controls: [
       { type: 'radio', id: 'mode', label: 'Explore', options: [['points', 'Production points'], ['actual', 'Actual growth and reallocation'], ['potential', 'Potential growth']] },
       { type: 'slider', id: 'shape', label: 'PPC shape', min: 0, max: 85, value: 85, ends: ['Constant opportunity cost', 'Increasing opportunity cost'] },
-      { type: 'slider', id: 'ax', label: 'Point A: good X', min: 0, max: 140, value: 35, showIf: isMode('points') },
-      { type: 'slider', id: 'ay', label: 'Point A: good Y', min: 0, max: 140, value: 35, showIf: isMode('points'), hint: 'A point close to the PPC snaps onto it.' },
-      { type: 'slider', id: 'bax', label: 'A (initial): good X', min: 0, max: 100, value: 25, showIf: isMode('actual') },
-      { type: 'slider', id: 'bay', label: 'A (initial): good Y', min: 0, max: yMax('bax'), value: 25, showIf: isMode('actual') },
-      { type: 'slider', id: 'bbx', label: 'B (final): good X', min: 0, max: 100, value: 40, showIf: isMode('actual') },
-      { type: 'slider', id: 'bby', label: 'B (final): good Y', min: 0, max: yMax('bbx'), value: 40, showIf: isMode('actual'), hint: 'A and B stay on or inside the PPC. The change is always A → B.' },
-      { type: 'slider', id: 'capX', label: 'Capacity for good X', min: 40, max: 140, value: 100, showIf: isMode('potential') },
-      { type: 'slider', id: 'capY', label: 'Capacity for good Y', min: 40, max: 140, value: 100, showIf: isMode('potential'), hint: 'Move both sliders together to expand or contract the whole PPC.' },
+      { type: 'slider', id: 'ax', label: 'Point A: consumer goods', min: 0, max: 140, value: 35, showIf: isMode('points') },
+      { type: 'slider', id: 'ay', label: 'Point A: capital goods', min: 0, max: 140, value: 35, showIf: isMode('points'), hint: 'A point close to the PPC snaps onto it.' },
+      { type: 'slider', id: 'bax', label: 'A (initial): consumer goods', min: 0, max: 100, value: 25, showIf: isMode('actual') },
+      { type: 'slider', id: 'bay', label: 'A (initial): capital goods', min: 0, max: yMax('bax'), value: 25, showIf: isMode('actual') },
+      { type: 'slider', id: 'bbx', label: 'B (final): consumer goods', min: 0, max: 100, value: 40, showIf: isMode('actual') },
+      { type: 'slider', id: 'bby', label: 'B (final): capital goods', min: 0, max: yMax('bbx'), value: 40, showIf: isMode('actual'), hint: 'A and B stay on or inside the PPC. The change is always A → B.' },
+      { type: 'slider', id: 'capX', label: 'Capacity for consumer goods', min: 40, max: 140, value: 100, showIf: isMode('potential') },
+      { type: 'slider', id: 'capY', label: 'Capacity for capital goods', min: 40, max: 140, value: 100, showIf: isMode('potential'), hint: 'Move both sliders together to expand or contract the whole PPC.' },
     ],
     draw,
   });

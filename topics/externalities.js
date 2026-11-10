@@ -37,7 +37,6 @@
   EW.register({
     id: 'negative-externalities', title: 'Negative Externalities', plot,
     glossary: [...baseGlossary, 'marginalExternalCost', 'marginalSocialCost', 'marginalSocialBenefit', 'deadweightLoss', 'freeMarketEquilibrium', 'sociallyOptimalOutput', 'overproduction'],
-    about: '<p>This diagram illustrates negative externalities in production: MSC = MPC + MEC. External benefits are assumed absent (MEB = 0), so MSB = MPB.</p>',
     controls: [
       { type: 'slider', id: 'mec', label: 'MEC', min: 0, max: 80, value: 25, ends: ['None', 'High'] },
       { type: 'check', id: 'mecArrow', label: 'MEC label', value: true },
@@ -71,7 +70,6 @@
   EW.register({
     id: 'positive-externalities', title: 'Positive Externalities', plot,
     glossary: [...baseGlossary, 'marginalExternalBenefit', 'marginalSocialCost', 'marginalSocialBenefit', 'deadweightLoss', 'freeMarketEquilibrium', 'sociallyOptimalOutput', 'underconsumption'],
-    about: '<p>This diagram illustrates positive externalities in consumption: MSB = MPB + MEB. External costs are assumed absent (MEC = 0), so MSC = MPC.</p>',
     controls: [
       { type: 'slider', id: 'meb', label: 'MEB', min: 0, max: 80, value: 15, ends: ['None', 'High'] },
       { type: 'check', id: 'mebArrow', label: 'MEB label', value: true },
@@ -135,7 +133,6 @@
     else { heading = 'Increased'; reason = 'The forgone benefits of preventing beneficial units exceed the welfare gain from avoiding harmful units.'; }
     return {
       result: EW.summary([['Policy', 'Ban (No Output)'], ['Deadweight Loss', heading], ['Reason', reason]]),
-      notes: `<details><summary>When does a ban improve welfare?</summary><p>A ban <strong>reduces DWL</strong> when the welfare gain from preventing harmful output outweighs the net benefits forgone by preventing beneficial output.</p><p>It <strong>eliminates DWL</strong> only when no positive output is socially desirable: MSC is at least MSB for every feasible positive quantity. Reducing DWL does not necessarily mean eliminating it.</p><p>Compare the shaded areas at the <strong>same MEC</strong>. The model assumes a fully enforced ban, no illegal market or substitutes, and no enforcement costs. The private curves and graph scales stay fixed as MEC varies.</p></details>`,
       desc: `${heading} ${reason}`,
     };
   }
@@ -145,9 +142,8 @@
     glossary: st => [...(neTerm[st.policy] ? [neTerm[st.policy]] : []), 'marginalPrivateBenefit', 'marginalPrivateCost', 'marginalSocialCost', 'marginalSocialBenefit', 'marginalExternalCost',
       'externality', 'marketFailure', 'allocativeEfficiency', 'internalisationOfExternalities', 'sociallyOptimalOutput', 'deadweightLoss',
       ...Object.values(neTerm).filter(t => t !== neTerm[st.policy])],
-    about: '<p>This diagram illustrates negative externalities in production: MSC = MPC + MEC. External benefits are assumed absent (MEB = 0), so MSB = MPB.</p>',
     controls: [
-      { type: 'radio', id: 'policy', label: 'Government policy', options: Object.entries(nePolicies), onChange: st => { Object.assign(st, { tax: 0, quota: 75, qpoll: 0, rd: 0, edu: 0, banMec: MEC }); } },
+      { type: 'select', id: 'policy', label: 'Government policy', options: Object.entries(nePolicies), onChange: st => { Object.assign(st, { tax: 0, quota: 75, qpoll: 0, rd: 0, edu: 0, banMec: MEC }); } },
       { type: 'slider', id: 'tax', label: 'Tax per unit', min: 0, max: 60, ends: ['None', 'High'], showIf: st => st.policy === 'tax' },
       { type: 'slider', id: 'quota', label: 'Maximum quantity', min: 20, max: 75, step: 0.5, value: 75, ends: ['Lower', 'Higher'], showIf: st => st.policy === 'quota' },
       { type: 'slider', id: 'qpoll', label: 'Pollutant quota', min: 0, max: 40, ends: ['No limit', 'Zero pollutant'], showIf: st => st.policy === 'qpoll' },
@@ -244,7 +240,6 @@
     return {
       result: EW.summary([['Provision', EW.tc(state)], ['Reason', why],
         ['Deadweight Loss', freeLoss < e ? 'Eliminated' : Math.abs(freeLoss - marketLoss) < e ? 'The Same as the Free Market' : freeLoss < marketLoss ? 'Reduced, but Some Loss Remains' : 'Increased Relative to the Free Market']]),
-      notes: '<p><strong>Mechanism:</strong> the government reimburses producers through a full subsidy. MPC* is MPC less the subsidy; the consumer price is zero. Producers receive P<sub>p</sub>. The subsidy is fixed as MEB changes.</p><p class="model-note"><strong>Assumptions:</strong> linear private curves, constant MEB, no rationing, and no administration or tax-financing distortion costs. Negative private benefits beyond the demand intercept represent unwillingness to consume additional units without compensation. The full-subsidy outcome is socially optimal only at the matching MEB level.</p>',
       desc: `${state}. ${why} ${comparison.replace(/<[^>]*>/g, '')}`,
     };
   }
@@ -258,9 +253,8 @@
       indirectSubsidy: 'Here the subsidy is paid to producers when producing the good, which lowers their marginal private cost of production.',
       directSubsidy: 'Here the payment is linked to purchasing the good. It raises the effective willingness to pay received by producers by the subsidy amount; it does not itself change the underlying benefit from consumption.',
     },
-    about: '<p>This diagram illustrates positive externalities in consumption: MSB = MPB + MEB. External costs are assumed absent (MEC = 0), so MSC = MPC.</p>',
     controls: [
-      { type: 'radio', id: 'policy', label: 'Government policy', options: Object.entries(pePolicies), onChange: st => { st.level = 0; st.subsidyCost = false; st.freeMeb = 60; } },
+      { type: 'select', id: 'policy', label: 'Government policy', options: Object.entries(pePolicies), onChange: st => { st.level = 0; st.subsidyCost = false; st.freeMeb = 60; } },
       { type: 'slider', id: 'level', label: 'Intervention level', min: 0, max: 60, ends: ['None', 'High'], showIf: st => !['none', 'free'].includes(st.policy),
         format: (v, st) => ({ indirect: 'subsidy per unit', direct: 'subsidy per unit', joint: 'government output (Q<sub>g</sub>)', education: 'campaign effectiveness' })[st.policy] || '' },
       { type: 'slider', id: 'freeMeb', label: 'MEB', min: 0, max: 120, value: 60, ends: ['None', 'High'], showIf: st => st.policy === 'free' },
@@ -297,7 +291,6 @@
       P.pLabel(ps, 'P_s', { color: C.social }); P.qLabel(qs, 'Q_s', { color: C.social, tip: k === 'joint' ? 'mf.qsJoint' : 'mf.qs' });
       if (k !== 'joint') point(P, qe, pe + MEB, 'A', C.social);
       if (st.mebArrow) vArrow(P, qe - 4, 120 - (qe - 4), 120 - (qe - 4) + MEB, C.demand, 'MEB', 'mf.meb');   // between MPB and MSB, just left of Q_e
-      let notes = '';
       if (v > 0 && k !== 'joint') {
         const pPol = k === 'indirect' ? q - v : k === 'direct' || k === 'education' ? 120 + v - q : q;
         P.line([q, 0], [q, Math.max(pPol, q)], { color: C.guide, width: 1.2, dash: '5 4' });
@@ -311,7 +304,6 @@
         P.qLabel(qp, 'Q_private', { color: C.supply });
         P.guide(q, price, { toX: false }); P.pLabel(price, 'P_joint', { color: C.policy });
         if (v > 0) { P.line([q, 0], [q, price], { color: C.guide, width: 1.2, dash: '5 4' }); point(P, q, price, null, C.policy); P.qLabel(q, 'Q_total', { color: C.policy }); }
-        notes = `<h2>Public output and the change in market output are different.</h2><p>${v > 0 ? 'Government provision <strong>increases total supply</strong>. Private output <strong>falls</strong>, while total output <strong>rises</strong>. Some government output replaces private output, so the increase in total output is smaller than government output.' : 'With <strong>no government provision</strong>, private output and total output remain at the original market outcome.'}</p><p><strong>Total output</strong> combines government and private output.</p><p class="model-note"><strong>Scope:</strong> fixed government output, sold at the market price, is added horizontally to private supply. Q<sub>s</sub> marks the <em>original</em> social optimum. Government production costs are unspecified, so this branch does not determine a new social optimum or DWL.</p>`;
       }
       if (k !== 'joint' && st.gap && Math.abs(q - qs) > 0.1) gapSpan(P, C, q, qs, q < qs ? 'Under-consumption' : 'Over-consumption', q < qs ? 'mf.gapUnder' : 'mf.gapOver');
       const dwl0 = triArea(qe, qs, MEB), dwl1 = k === 'joint' ? null : triArea(q, qs, Math.abs(120 + MEB - q - q));
@@ -324,7 +316,7 @@
         rows = [['Policy', EW.tc(pePolicies[k].replace(/ \(.*\)$/, ''))], ['Impact on Benefits/Costs', benefits],
           ['Impact on Q_e/Q_s', !near(q, qe) ? `Q_e ${EW.chg(q - qe, 'Q_e', qLabel)}` : 'No Change'], ['Deadweight Loss', `${dwlText} compared with no policy`]];
       }
-      return { result: k === 'none' ? '' : EW.summary(rows), notes, desc: rows.map(r => r.join(': ')).join('. ') };
+      return { result: k === 'none' ? '' : EW.summary(rows), desc: rows.map(r => r.join(': ')).join('. ') };
     },
   });
 })();

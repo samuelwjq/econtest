@@ -93,7 +93,6 @@
         points(P, C, a, b, { names: ['A', 'B'], tip: 'macro.pointOnAd' });
         return {
           result: table([['AD Curve', 'Unchanged'], ['GPL', EW.chg(st.price - 50, 'P_0', 'P_1')], ['RNY', EW.chg(50 - st.price, 'Y_0', 'Y_1')]]),
-          notes: '<p>A change in the general price level causes a <strong>movement along the same AD curve</strong>. A lower price level increases real output demanded; a higher price level reduces it, <em>ceteris paribus</em>. C, I, G, X and M are held unchanged as autonomous determinants.</p><p>Points A and B are positions on AD. AS is hidden in this mode. Moving the selected point does not create a new AD–AS equilibrium.</p>',
           desc: `AD unchanged. GPL ${word(st.price - 50)}, RNY ${word(50 - st.price)}.`,
         };
       }
@@ -107,12 +106,8 @@
       const name = components[st.component];
       const rows = [[`${name} (${st.component})`, EW.CHG(st.change)], ...(['X', 'M'].includes(st.component) ? [['Net Exports (X − M)', EW.CHG(shift)]] : []), ['AD', AD(shift)],
         ...(st.showAS ? gplRny(e0, e1) : [['GPL and RNY', 'Show AS to determine them']])];
-      const reason = st.component === 'M' ? 'Imports are subtracted in AD = C + I + G + (X − M). Holding C, I, G and X constant, higher imports reduce net exports and demand for domestic output; lower imports increase them.'
-        : st.component === 'X' ? 'Holding imports constant, higher exports increase net exports (X − M), while lower exports reduce net exports.'
-        : `An autonomous change in ${name.toLowerCase()} changes planned expenditure on domestic output at every general price level, holding other determinants constant.`;
       return {
         result: table(rows),
-        notes: `<p class="model-note">AD = C + I + G + (X − M)</p><p>${reason}</p><p>${shift === 0 ? 'The selected component is unchanged, so AD stays at AD₀.' : `This is a <strong>shift of AD</strong>: ${shift > 0 ? 'more' : 'less'} real output is demanded at every general price level. AD₀ is the initial curve and AD₁ is the new curve.`}</p><p>${st.showAS ? `The new equilibrium lies on the <strong>${e1.section} section of AS</strong>. On the horizontal section, output can change without a price-level change; on the vertical section, real output is fixed at full employment. In between, both can change.` : 'AS is hidden, so no equilibrium price-level or real-income outcome is inferred from the AD shift alone.'}</p><p class="model-note">Changes are qualitative and illustrative. No multiplier rounds are included. AS controls reshape a reference supply curve; both AD₀ and AD₁ are compared against the same AS.</p>`,
         desc: rows.map(r => `${r[0]} ${r[1]}`).join('. '),
       };
     },
@@ -152,7 +147,6 @@
         points(P, C, a, b, { names: ['A', 'B'], tip: 'macro.pointOnAs' });
         return {
           result: table([['AS Curve', 'Unchanged'], ...gplRny(a, b)]),
-          notes: '<p>A stays fixed at the selected starting position. B moves along the same AS curve. The straight arrow connects A to B; the points may lie on different sections of the unchanged AS curve.</p><p>On horizontal SRAS, output varies at an unchanged price level. On the intermediate section, price and output vary together. On vertical LRAS, price varies at unchanged full-employment output.</p><p class="model-note">The slider selects a position along AS; price alone cannot uniquely locate a point on its horizontal section, and output alone cannot locate one on its vertical section. A and B are supply combinations, not necessarily equilibria.</p>',
           desc: `AS unchanged. GPL ${word(b.p - a.p)}, RNY ${word(b.q - a.q)}.`,
         };
       }
@@ -175,13 +169,8 @@
       else if (st.factor !== 'resources') rows.push(['Cost of Production (COP)', EW.CHG(p.level - 20)], ['SRAS', AS(BASE.level - p.level)]);
       if (st.factor === 'resources') rows.push(['Productive Capacity', EW.CHG(p.full - 85)], ['LRAS', AS(p.full - 85)]);
       if (st.showAD) { const a = equilibrium(110, 85, 20), b = equilibrium(110, p.full, p.level); points(P, C, a, b); rows.push(...gplRny(a, b)); }
-      const reason = { labour: 'Labour costs change unit production costs, holding productivity constant.', raw: 'Raw-material prices change production costs.',
-        exchange: 'An increase means domestic-currency appreciation: imported inputs become cheaper, lowering production costs. A decrease means depreciation and reverses the effect. Only the imported-input channel is shown; AD is fixed.',
-        resources: 'The quantity of resources changes productive capacity. This case holds the horizontal SRAS price level fixed.',
-        productivity: 'Higher productivity lowers unit production costs and raises productive capacity: SRAS moves down and LRAS moves right. Lower productivity reverses both changes.' }[st.factor];
       return {
         result: table(rows),
-        notes: `<p>${reason}</p><p>The intermediate section adjusts smoothly between the horizontal and vertical sections. AS₀ remains fixed. AS₁ represents the changed costs and/or capacity.</p><p>${st.showAD ? 'AD is fixed. E₀ and E₁ show the initial and new macroeconomic equilibria.' : 'AD is hidden, so equilibrium price and income outcomes are not inferred from AS alone.'}</p><p class="model-note">Geometry is illustrative; no numerical calibration or multiplier rounds are included.</p>`,
         desc: rows.map(r => `${r[0]} ${r[1]}`).join('. '),
       };
     },
@@ -213,7 +202,6 @@
     points(P, C, r.a, r.b);
     return { adChanged, asChanged };
   }
-  const asWords = r => { const w = []; if (r.level !== BASE.level) w.push(`SRAS ${r.level < BASE.level ? 'increases (downwards shift)' : 'decreases (upwards shift)'}`); if (r.full !== BASE.full) w.push(`LRAS ${r.full > BASE.full ? 'increases (rightwards shift)' : 'decreases (leftwards shift)'}`); return w; };
   const multiplierSlider = { type: 'slider', id: 'multiplier', label: 'Size of multiplier', min: 0, max: 100, value: 50, ends: ['No further rounds', 'Large'] };
   const viewChecks = [{ type: 'check', id: 'showMultiplier', label: 'Show multiplier effect' }, { type: 'check', id: 'showShifts', label: 'Show shifts in AD/AS' }];
 
@@ -235,12 +223,9 @@
       const shift = Math.max(level + 2 - initial, autonomous * (1 + st.multiplier / 100));
       const r = { initial, final: initial + shift, autonomous, shift, full, level, a: equilibrium(initial, BASE.full, BASE.level), b: equilibrium(initial + shift, full, level) };
       const { adChanged, asChanged } = drawAdAs(P, st, C, r);
-      const ad = adChanged ? `AD ${r.shift > 0 ? 'increases (rightwards shift).' : 'decreases (leftwards shift).'}` : st.adShift !== 0 ? 'AD is unchanged because the initial spending change is zero.' : 'AD is unchanged.';
-      const aw = asWords(r);
       return {
         result: table([['AD', AD(adChanged ? r.shift : 0)], ...(asChanged ? [...(r.level !== BASE.level ? [['SRAS', AS(BASE.level - r.level)]] : []), ...(r.full !== BASE.full ? [['LRAS', AS(r.full - BASE.full)]] : [])] : [['AS', 'Unchanged']]), ...gplRny(r.a, r.b)]),
-        notes: `<p><strong>${ad} ${aw.length ? aw.join('; ') + '.' : 'AS is unchanged.'}</strong></p><p>E₀ starts on the ${r.a.section} section; E₁ lies on the ${r.b.section} section. The price level ${near(r.b.p, r.a.p) ? 'is unchanged' : r.b.p > r.a.p ? 'increases' : 'decreases'}; real national income ${near(r.b.q, r.a.q) ? 'is unchanged' : r.b.q > r.a.q ? 'increases' : 'decreases'}.</p><p>For the same initial spending change, a larger multiplier gives a larger total AD shift. The AS section determines how the equilibrium adjustment is divided between price and real national income. The controls are qualitative; the diagram is not a numerical forecast.</p>${st.showMultiplier ? '<p>The initial spending change generates income. Further rounds of induced consumption enlarge the total AD shift. AD<sub>a</sub> shows the initial change only; later violet curves show cumulative spending stages.</p>' : ''}`,
-        desc: `${ad} GPL ${word(r.b.p - r.a.p)}, RNY ${word(r.b.q - r.a.q)}.`,
+        desc: `AD ${AD(adChanged ? r.shift : 0)}. GPL ${word(r.b.p - r.a.p)}, RNY ${word(r.b.q - r.a.q)}.`,
       };
     },
   });
@@ -250,7 +235,6 @@
     id: 'fiscal-policy', title: 'Fiscal Policy', plot,
     glossary: [...coreGlossary, 'fiscalPolicy', 'expansionaryFiscalPolicy', 'contractionaryFiscalPolicy', 'taxes', 'multiplierEffect', 'initialSpendingChange', 'shortRunAggregateSupply', 'longRunAggregateSupply', 'initialStateOfTheEconomy'],
     glossaryNotes: { taxes: 'This scenario assumes personal and corporate taxes move together. Tax cuts raise disposable income and consumption (C), and raise after-tax profitability and investment (I); tax increases reverse these channels. The combined initial C/I response is smaller than an equally sized G change; only part of extra disposable income is spent and investment responsiveness is assumed. This is not a calibrated comparison of actual policies.', shortRunAggregateSupply: 'This control holds productive capacity fixed.', longRunAggregateSupply: 'This control holds the horizontal section’s price level fixed.', multiplierEffect: 'No further rounds retains the initial spending effect. Small and Large add further rounds of induced consumption; these settings are illustrative, not numerical estimates.' },
-    about: '<p><strong>Policy limitations.</strong> Outcomes depend on spare capacity, leakages, confidence, timing and implementation. Crowding out, financing constraints and automatic price-adjustment dynamics are not modelled. Long-run capacity effects are possible scenarios, not automatic consequences.</p>',
     controls: [
       { type: 'radio', id: 'initial', label: 'Initial equilibrium', options: initialOptions },
       { type: 'radio', id: 'instrument', label: 'Instrument', options: [['G', 'Government expenditure (G)'], ['T', 'Taxes (T)']] },
@@ -273,10 +257,8 @@
       const immediate = equilibrium(r.final, BASE.full, BASE.level);
       const rows = [[st.instrument === 'G' ? 'Government Expenditure (G)' : 'Taxes (T)', EW.CHG(st.change)], ['Stance', EW.tc(policy)], ...(st.instrument === 'T' ? [['C and I', EW.CHG(initialC)]] : []),
         ['AD', AD(adChanged ? r.shift : 0)], ...(st.longRun ? [['LRAS', AS(r.full - BASE.full)]] : []), ...gplRny(r.a, r.b)];
-      const longRun = st.longRun ? `<h2>Possible long-run supply-side effects</h2><p>For this widget, expansionary policy permits zero or positive capacity effects; contractionary policy permits zero or negative effects. This is a teaching assumption, not a universal rule. This is an assumed possible effect, not an automatic consequence of ${policy.toLowerCase()}. Productive infrastructure investment may increase capacity; weaker investment or inadequate maintenance can reduce capacity over time. A fall in investment alone need not imply an absolute decline in capacity. The slider compares capacity with the initial baseline, with other supply influences held constant. ${lras === 0 ? 'No capacity change is selected.' : lras > 0 ? 'Selected scenario: productive capacity increases and LRAS shifts right.' : 'Selected scenario: productive capacity decreases and LRAS shifts left.'} The immediate AD-only outcome would be P ${word(immediate.p - r.a.p)} and RNY ${word(immediate.q - r.a.q)}.</p>` : '';
       return {
         result: table(rows),
-        notes: `<p><strong>${policy}: ${st.instrument} ${word(st.change)} → AD ${word(r.shift)}.</strong></p><p>${st.instrument === 'G' ? 'Government expenditure changes planned expenditure directly. ' : 'This tax scenario assumes personal and corporate taxes move together. Tax cuts raise disposable income and C, and after-tax profitability and I; tax increases reverse both effects. These are assumed responses, not automatic outcomes for every tax change. '}${st.multiplier === 0 ? 'No further rounds are selected; the initial effect is retained.' : 'Income changes generate further rounds of induced consumption. Saving, taxes and imports limit successive rounds.'}</p><p>E₀ is the initial equilibrium. E₁ shows ${st.longRun ? 'the selected possible longer-run outcome, combining the spending effect with the assumed capacity change.' : 'the immediate demand-side outcome, with AS held fixed.'} P ${word(r.b.p - r.a.p)}; RNY ${word(r.b.q - r.a.q)}.</p><p class="model-note">The initial spending stage AD<sub>a</sub> stays fixed when only multiplier size changes. AD<sub>b</sub>, when shown, represents an illustrative cumulative spending stage. The AS section determines how the final change divides between prices and real income.</p>${longRun}`,
         desc: rows.map(r => `${r[0]} ${r[1]}`).join('. '),
       };
     },
@@ -287,13 +269,11 @@
     id: 'monetary-policy', title: 'Monetary Policy (Interest and Exchange Rates)', plot,
     glossary: [...coreGlossary, 'monetaryPolicy', 'interestRates', 'exchangeRate', 'marshallLernerCondition', 'importedInputCosts', 'multiplierEffect', 'initialSpendingChange', 'shortRunAggregateSupply', 'longRunAggregateSupply', 'initialStateOfTheEconomy'],
     glossaryNotes: { shortRunAggregateSupply: 'This control holds productive capacity fixed.', longRunAggregateSupply: 'This control holds the horizontal section’s price level fixed.', multiplierEffect: 'No further rounds retains the initial spending effect. Small and Large add further rounds of induced consumption; these settings are illustrative, not numerical estimates.' },
-    about: '<p><strong>Policy limitations.</strong> The diagram is qualitative, with other influences held constant. It omits numerical policy calibration, adjustment lags, the J-curve, capital flows, feedback between interest and exchange rates, and automatic return to full employment. A fall in investment may slow capacity growth without reducing its absolute level.</p>',
     controls: [
       { type: 'radio', id: 'initial', label: 'Initial equilibrium', options: initialOptions },
       { type: 'radio', id: 'instrument', label: 'Instrument', options: [['IR', 'Interest rates'], ['ER', 'Exchange rates']] },
       { type: 'slider', id: 'change', label: st => st.instrument === 'ER' ? 'Exchange rate' : 'Interest rate', min: -100, max: 100, step: 5, ends: st => st.instrument === 'ER' ? ['Depreciation', 'Appreciation'] : ['Decrease', 'Increase'] },
       multiplierSlider,
-      { type: 'check', id: 'mlHolds', label: 'Marshall–Lerner condition holds', value: true, showIf: st => st.instrument === 'ER' },
       { type: 'check', id: 'importCosts', label: 'Show imported input cost effects', showIf: st => st.instrument === 'ER' },
       { type: 'check', id: 'longRun', label: 'Possible long-run supply-side effects' },
       { type: 'slider', id: 'capacity', label: 'Possible long-run change to productive capacity', min: -100, max: 100, ends: ['Decrease', 'Increase'], showIf: st => st.longRun },
@@ -301,7 +281,7 @@
     ],
     draw(P, st, C) {
       const initial = initials[st.initial], er = st.instrument === 'ER';
-      const autonomous = er ? -10 * st.change / 100 * (st.mlHolds ? 1 : -1) : -12 * st.change / 100, shift = autonomous * (1 + st.multiplier / 100);
+      const autonomous = er ? -10 * st.change / 100 : -12 * st.change / 100, shift = autonomous * (1 + st.multiplier / 100);
       const lras = st.longRun && st.change !== 0 ? st.capacity : 0;
       const r = { initial, final: initial + shift, autonomous, shift, full: BASE.full + 20 * lras / 100, level: BASE.level - (er && st.importCosts ? 6 * st.change / 100 : 0) };
       r.a = equilibrium(initial, BASE.full, BASE.level); r.b = equilibrium(r.final, r.full, r.level);
@@ -310,13 +290,9 @@
       if (er && st.importCosts) rows.push(['Cost of Production (COP)', EW.CHG(r.level - BASE.level)], ['SRAS', AS(BASE.level - r.level)]);
       if (st.longRun) rows.push(['LRAS', AS(r.full - BASE.full)]);
       rows.push(...gplRny(r.a, r.b));
-      const channel = er ? (st.mlHolds ? 'The Marshall–Lerner condition holds: depreciation raises (X − M) and AD; appreciation lowers them.' : 'The Marshall–Lerner condition does not hold: this case assumes the elasticity sum is below one. Depreciation lowers (X − M) and AD; appreciation raises them.')
-        : 'A lower interest rate can raise C and I by reducing borrowing costs and the incentive to save. A higher rate can reduce C and I. The exchange-rate channel is excluded.';
       const adOnly = equilibrium(r.final, BASE.full, BASE.level);
-      const longRun = st.longRun ? `<h2>Possible long-run supply-side effects</h2><p>${er ? 'Exchange-rate changes can affect export investment and the domestic-currency cost of imported capital equipment. These influences can work in opposite directions. ' : 'Interest-rate changes can affect investment in capital, technology and productivity. Confidence, credit conditions and other influences can alter the response. '}Choose a possible increase or decrease in capacity relative to the initial baseline; this is an assumption, not an automatic prediction. A fall in investment alone need not reduce the absolute level of productive capacity. ${st.change === 0 ? 'Select an interest-rate or exchange-rate change to explore a possible capacity effect. ' : lras === 0 ? 'No capacity change is selected. ' : lras > 0 ? 'Selected scenario: LRAS increases. ' : 'Selected scenario: LRAS decreases. '}The AD-only outcome would be GPL ${word(adOnly.p - r.a.p)} and RNY ${word(adOnly.q - r.a.q)}.</p>` : '';
       return {
         result: table(rows),
-        notes: `<p>${channel}</p>${er ? `<p>${st.importCosts ? 'Imported input costs are included: appreciation lowers COP and increases SRAS; depreciation raises COP and decreases SRAS. This channel is separate from the Marshall–Lerner condition.' : 'Imported input cost effects are hidden; SRAS is held fixed.'} Initial trade balance is assumed. Equality, the J-curve and adjustment lags are excluded.</p>` : ''}<p>${st.multiplier === 0 ? 'No further rounds retains the initial spending response.' : 'The multiplier adds induced consumption to the initial spending response.'} AD<sub>a</sub> shows the initial spending stage; AD<sub>b</sub> is a later illustrative cumulative stage. They are spending stages, not separate equilibria.</p><p>E₀ is the initial equilibrium. E₁ combines the AD change with the selected supply effects. GPL ${word(r.b.p - r.a.p)}; RNY ${word(r.b.q - r.a.q)}. The AS section affects how adjustment divides between GPL and RNY. Geometry is illustrative.</p>${longRun}`,
         desc: rows.map(x => `${x[0]} ${x[1]}`).join('. '),
       };
     },
@@ -324,12 +300,12 @@
 
   /* ---------- Topic 9: Supply-side policies ---------- */
   const sspPolicies = {
-    education: { name: 'Education and training', label: 'Labour productivity gain', explanation: 'Education and skills training can help workers produce more per hour. Higher labour productivity lowers unit costs and raises productive capacity.' },
-    research: { name: 'R&D grants', label: 'Productivity gain', explanation: 'R&D grants can support new technologies and production methods. Successful adoption can lower unit costs and raise productive capacity.' },
-    'price-controls': { name: 'Factor price controls', label: 'Reduction in COP', explanation: 'If price controls lower factor prices and firms can still obtain the inputs they need, costs of production fall and SRAS increases. This scenario holds productive capacity fixed.' },
-    entrepreneurship: { name: 'Entrepreneurship grants', label: 'Productivity gain', explanation: 'Grants can help entrepreneurs introduce better products and processes. Productivity gains can lower unit costs and raise productive capacity.' },
-    goods: { name: 'Goods market competition', label: 'Productivity gain', explanation: 'Competition can encourage firms to improve efficiency and innovate. Productivity gains can lower unit costs and raise productive capacity.' },
-    factors: { name: 'Factor market competition', label: 'Productivity gain', explanation: 'More competitive factor markets can help labour and capital move to more productive uses. This can lower unit costs and raise productive capacity.' },
+    education: { name: 'Education and training', label: 'Labour productivity gain'},
+    research: { name: 'R&D grants', label: 'Productivity gain'},
+    'price-controls': { name: 'Factor price controls', label: 'Reduction in COP'},
+    entrepreneurship: { name: 'Entrepreneurship grants', label: 'Productivity gain'},
+    goods: { name: 'Goods market competition', label: 'Productivity gain'},
+    factors: { name: 'Factor market competition', label: 'Productivity gain'},
   };
   const sspMenu = { education: 'Subsidising education and skills training', research: 'Providing R&D grants', 'price-controls': 'Price controls on factors of production', entrepreneurship: 'Encouraging entrepreneurship via grants', goods: 'Increasing competition in goods markets', factors: 'Increasing competition in factor markets' };
   EW.register({
@@ -337,7 +313,7 @@
     glossary: [...coreGlossary, 'supplySidePolicy', 'interventionistPolicies', 'marketOrientedPolicies', 'productivity', 'costOfProduction', 'shortRunAggregateSupply', 'longRunAggregateSupply', 'initialStateOfTheEconomy'],
     controls: [
       { type: 'radio', id: 'initial', label: 'Initial equilibrium', options: initialOptions },
-      { type: 'radio', id: 'policy', label: 'Policy', options: Object.entries(sspMenu) },
+      { type: 'select', id: 'policy', label: 'Policy', options: Object.entries(sspMenu) },
       { type: 'slider', id: 'impact', label: st => sspPolicies[st.policy].label, min: 0, max: 100, step: 5, ends: st => st.policy === 'price-controls' ? ['No reduction', 'Large reduction'] : ['No gain', 'Large gain'] },
       { type: 'check', id: 'showShifts', label: 'Show shifts in AS' },
     ],
@@ -355,7 +331,6 @@
         ...(changed ? [['SRAS', AS(BASE.level - level)], ['LRAS', AS(full - BASE.full)]] : [['AS', 'Unchanged']]), ...gplRny(a, b)];
       return {
         result: table(rows),
-        notes: `<p>${pol.explanation} AD is fixed. ${changed ? 'E₁ shows the resulting equilibrium.' : 'E₀ and E₁ coincide at zero impact.'}</p>`,
         desc: rows.map(r => `${r[0]} ${r[1]}`).join('. '),
       };
     },
@@ -364,38 +339,38 @@
   /* ---------- Topic 8: Macroeconomic issues and their causes (preset cases) ---------- */
   const categories = [
     { category: 'Actual growth', cases: [
-      { title: 'AD increases', initial: 42, shift: { ad: 20 }, explanation: 'Higher consumption → AD increases → firms use idle resources to raise RNY at the same GPL.',
-        equilibria: [{ label: 'Spare capacity', initial: 42 }, { label: 'Near capacity', initial: 140, explanation: 'Higher consumption → AD increases → RNY rises slightly and GPL rises as firms approach the capacity limit.' }] },
-      { title: 'SRAS increases', initial: 112, shift: { costs: -9.6 }, explanation: 'Lower energy costs → SRAS increases → RNY rises and GPL falls. Productive capacity stays fixed.',
+      { title: 'AD increases', initial: 42, shift: { ad: 20 },
+        equilibria: [{ label: 'Spare capacity', initial: 42 }, { label: 'Near capacity', initial: 140}] },
+      { title: 'SRAS increases', initial: 112, shift: { costs: -9.6 },
         equilibria: [{ label: 'Spare capacity', initial: 50 }, { label: 'Near capacity', initial: 112 }] }] },
     { category: 'Potential growth', cases: [
-      { title: 'LRAS increases', initial: 56, shift: { capacity: 24 }, explanation: 'Better infrastructure → LRAS increases → productive capacity rises. AD still intersects the same horizontal section, so actual RNY and GPL stay unchanged.',
-        equilibria: [{ label: 'Spare capacity', initial: 56 }, { label: 'At capacity', initial: 155, explanation: 'Better infrastructure → LRAS increases → productive capacity rises. The expansion eases the capacity constraint, so actual RNY also rises and GPL falls.' }, { label: 'Near capacity', initial: 112, explanation: 'Higher productive capacity shifts LRAS right. RNY rises and GPL falls as capacity constraints ease.' }] }] },
+      { title: 'LRAS increases', initial: 56, shift: { capacity: 24 },
+        equilibria: [{ label: 'Spare capacity', initial: 56 }, { label: 'At capacity', initial: 155}, { label: 'Near capacity', initial: 112}] }] },
     { category: 'Sustained growth', cases: [
-      { title: 'AD and LRAS increase', initial: 148, shift: { ad: 24, capacity: 24 }, explanation: 'Higher spending raises AD, while expanding productive capacity shifts LRAS to the right. Actual and potential output both rise. Sustained growth requires these gains to continue over time.',
+      { title: 'AD and LRAS increase', initial: 148, shift: { ad: 24, capacity: 24 },
         equilibria: [{ label: 'Spare capacity', initial: 48 }, { label: 'Near capacity', initial: 148 }, { label: 'At capacity', initial: 165 }] }] },
     { category: 'Negative growth', cases: [
-      { title: 'AD decreases', initial: 68, shift: { ad: -27 }, explanation: 'Lower consumer confidence → consumption and AD fall → RNY falls. With spare capacity, GPL stays unchanged in this preset.',
-        equilibria: [{ label: 'Spare capacity', initial: 68 }, { label: 'Near capacity', initial: 136, explanation: 'Lower consumer confidence → consumption and AD fall → both RNY and GPL fall. Productive capacity stays fixed.' }, { label: 'At capacity', initial: 165, explanation: 'Lower AD first reduces GPL while output stays at capacity. If AD falls far enough, RNY also falls.' }] },
-      { title: 'SRAS decreases', initial: 112, shift: { costs: 10.2 }, explanation: 'Higher production costs → SRAS decreases → RNY falls and GPL rises. Productive capacity stays unchanged.',
+      { title: 'AD decreases', initial: 68, shift: { ad: -27 },
+        equilibria: [{ label: 'Spare capacity', initial: 68 }, { label: 'Near capacity', initial: 136}, { label: 'At capacity', initial: 165}] },
+      { title: 'SRAS decreases', initial: 112, shift: { costs: 10.2 },
         equilibria: [{ label: 'Spare capacity', initial: 55 }, { label: 'Near capacity', initial: 112 }] },
-      { title: 'LRAS decreases', initial: 155, shift: { capacity: -14 }, explanation: 'A loss of productive resources → LRAS decreases → productive capacity falls. The economy starts at capacity, so actual RNY also falls and GPL rises.',
-        equilibria: [{ label: 'Near capacity', initial: 130, explanation: 'A loss of productive resources shifts LRAS left. Productive capacity and actual RNY fall, while GPL rises.' }, { label: 'At capacity', initial: 155 }] }] },
+      { title: 'LRAS decreases', initial: 155, shift: { capacity: -14 },
+        equilibria: [{ label: 'Near capacity', initial: 130}, { label: 'At capacity', initial: 155 }] }] },
     { category: 'Inflation', cases: [
-      { title: 'Demand-pull (AD increases)', target: 'Demand-pull inflation', initial: 140, shift: { ad: 22 }, explanation: 'Higher spending → AD increases → GPL rises. With little spare capacity, RNY rises only slightly.',
-        equilibria: [{ label: 'Near capacity', initial: 140 }, { label: 'At capacity', initial: 165, explanation: 'Higher spending → AD increases → GPL rises. RNY is already at productive capacity and stays unchanged.' }, { label: 'Spare capacity', initial: 68, explanation: 'Higher AD first raises RNY at the same GPL. If the shift reaches the upward-sloping portion of AS, GPL also rises.' }] },
-      { title: 'Cost-push (SRAS decreases)', target: 'Cost-push inflation', initial: 112, shift: { costs: 10.2 }, explanation: 'Higher energy costs → SRAS decreases → GPL rises and RNY falls.', note: 'If inflation persists alongside weak output and high unemployment, the economy can experience stagflation.',
+      { title: 'Demand-pull (AD increases)', target: 'Demand-pull inflation', initial: 140, shift: { ad: 22 },
+        equilibria: [{ label: 'Near capacity', initial: 140 }, { label: 'At capacity', initial: 165}, { label: 'Spare capacity', initial: 68}] },
+      { title: 'Cost-push (SRAS decreases)', target: 'Cost-push inflation', initial: 112, shift: { costs: 10.2 },
         equilibria: [{ label: 'Spare capacity', initial: 55 }, { label: 'Near capacity', initial: 112 }] }] },
     { category: 'Deflation', cases: [
-      { title: 'AD decreases', initial: 127, shift: { ad: -31 }, explanation: 'Lower consumption and investment → AD decreases → both GPL and RNY fall.',
-        equilibria: [{ label: 'Spare capacity', initial: 78, explanation: 'Lower AD reduces RNY. GPL stays unchanged because the economy remains on the flat portion of AS.' }, { label: 'Near capacity', initial: 127 }, { label: 'At capacity', initial: 165, explanation: 'Lower AD reduces GPL. RNY stays at capacity until AD falls enough to move the equilibrium below capacity.' }] },
-      { title: 'SRAS increases', initial: 112, shift: { costs: -9.6 }, explanation: 'Lower production costs → SRAS increases → GPL falls and RNY rises.',
+      { title: 'AD decreases', initial: 127, shift: { ad: -31 },
+        equilibria: [{ label: 'Spare capacity', initial: 78}, { label: 'Near capacity', initial: 127 }, { label: 'At capacity', initial: 165}] },
+      { title: 'SRAS increases', initial: 112, shift: { costs: -9.6 },
         equilibria: [{ label: 'Spare capacity', initial: 50 }, { label: 'Near capacity', initial: 112 }] },
-      { title: 'LRAS increases', initial: 170, shift: { capacity: 24 }, explanation: 'Higher productive capacity → LRAS increases → GPL falls and RNY rises at the same AD.',
+      { title: 'LRAS increases', initial: 170, shift: { capacity: 24 },
         equilibria: [{ label: 'Near capacity', initial: 130 }, { label: 'At capacity', initial: 170 }] }] },
     { category: 'Unemployment', cases: [
-      { title: 'Demand-deficient (AD decreases)', target: 'Demand-deficient unemployment', initial: 68, shift: { ad: -24 }, outputGap: true, explanation: 'Lower investment → AD decreases → RNY falls further below productive capacity. Firms need fewer workers, so demand-deficient unemployment rises.',
-        equilibria: [{ label: 'Spare capacity', initial: 68 }, { label: 'At capacity', initial: 165, explanation: 'A small fall in AD leaves RNY at capacity. A large enough fall takes RNY below capacity, opening a negative output gap and increasing demand-deficient unemployment.' }, { label: 'Near capacity', initial: 136 }] }] },
+      { title: 'Demand-deficient (AD decreases)', target: 'Demand-deficient unemployment', initial: 68, shift: { ad: -24 }, outputGap: true,
+        equilibria: [{ label: 'Spare capacity', initial: 68 }, { label: 'At capacity', initial: 165}, { label: 'Near capacity', initial: 136 }] }] },
   ];
   const states = ['Spare capacity', 'Near capacity', 'At capacity'];
   const cat = st => categories.find(c => c.category === st.category) || categories[0];
@@ -409,7 +384,7 @@
     id: 'macro-issues', title: 'Macroeconomic Issues and Their Causes', plot,
     glossary: [...coreGlossary, 'generalPriceLevel', 'realNationalIncome', 'productiveCapacity', 'actualAndPotentialGrowth', 'inflationAndDeflation', 'demandDeficientUnemployment', 'negativeOutputGap'],
     controls: [
-      { type: 'radio', id: 'category', label: 'Issue', options: categories.map(c => [c.category, c.category]), onChange: st => { st.case = '0'; st.start = defaultStart(st); st.amount = 0; } },
+      { type: 'select', id: 'category', label: 'Issue', options: categories.map(c => [c.category, c.category]), onChange: st => { st.case = '0'; st.start = defaultStart(st); st.amount = 0; } },
       { type: 'radio', id: 'case', label: 'Cause', options: st => cat(st).cases.map((c, i) => [String(i), c.title]), onChange: st => { st.start = defaultStart(st); st.amount = 0; } },
       { type: 'radio', id: 'start', label: 'Initial equilibrium', value: 'Spare capacity', options: st => { const c = caseOf(st); return states.filter(s => c.equilibria.some(e => e.label === s)).map(s => [s, s]); }, onChange: st => { st.amount = 0; } },
       { type: 'slider', id: 'amount', label: 'Size of shift', min: 0, max: 100, ends: ['0', 'Largest'], format: (v, st) => { const e = caseOf(st); return `${shiftName(e)} ${decreasing(e) ? 'decrease' : 'increase'}`; } },
@@ -442,7 +417,6 @@
         : [...driver, ...gplRny(a, b), ...(e.outputGap && widens ? [['Negative Output Gap', initialGap < 1e-6 ? 'Opens' : 'Widens']] : []), [EW.tc(target), observed ? 'Observed' : 'Not Observed']];
       return {
         result: table(rows),
-        notes: `<p>${e.explanation}</p>${e.note ? `<p class="model-note">${e.note}</p>` : ''}`,
         desc: `${cat(st).category}, ${e.title}. ${rows.map(r => `${r[0]} ${r[1]}`).join('. ')}. ${target} ${observed ? 'observed' : 'not observed'}.`,
       };
     },

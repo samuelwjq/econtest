@@ -43,6 +43,8 @@
   }
 
   const ped = kind => kind === 'PED';
+  // Default reference elasticity: the reciprocal of the main one (slider position 2 − t). Unit elasticity has no different mirror, so use 0.5.
+  const mirror = t => Math.abs(t - 1) < 0.03 ? 0.67 : Math.round((2 - t) * 100) / 100;
   function draw(P, st, C, kind) {
     const m = model(kind, st), { e, delta, p, q } = m, changed = !zero(delta), sameP = zero(p - 50);
     const curveKey = kind === 'PED' ? 'demand' : 'supply';
@@ -66,6 +68,24 @@
     if (changed) kind === 'PED' ? curve(oldS, 'S_0', C.supply0) : curve(oldD, 'D_0', C.demand0);
     curve(m.qd, changed && kind !== 'PED' ? 'D_1' : 'D_0', C.demand, kind === 'PED' && e === Infinity);
     curve(m.qs, changed && kind === 'PED' ? 'S_1' : 'S_0', C.supply, kind === 'PES' && e === Infinity);
+
+    // Reference curve (PED: demand D_2; PES: supply S_2): pivoted around E_0 with a different elasticity, facing the same shift.
+    // Visual only: the Summary table describes the main curve.
+    if (m.price && st.ref) {
+      const m2 = model(kind, { ...st, el: st.refEl }), col = ped(kind) ? C.demand : C.supply, lab = ped(kind) ? 'D_2' : 'S_2';
+      const fn = ped(kind) ? m2.qd : m2.qs, horizontal = m2.e === Infinity;
+      const [a, b] = ends(fn, horizontal), end = a[0] > b[0] + 0.01 || (Math.abs(a[0] - b[0]) <= 0.01 && a[1] > b[1]) ? a : b;
+      P.line(a, b, { color: col, width: 2, dash: '7 5' });
+      P.pointLabel(end, lab, { color: col, prefer: 'e', tip: 'ref.curve' });
+      if (changed && !(zero(m2.p - p) && zero(m2.q - q))) {
+        P.guide(m2.q, m2.p);
+        P.dot([m2.q, m2.p], col, 'ref.eq');
+        P.pointLabel([m2.q, m2.p], 'E_2', { color: col, tip: 'ref.eq' });
+        P.pLabel(m2.p, 'P_2', { color: col, tip: 'ref.eq' });
+        P.qLabel(m2.q, 'Q_2', { color: col, tip: 'ref.eq' });
+      }
+      if (!changed) P.textAt((P.l + P.r) / 2 + 30, P.t - 18, `Choose a change in ${ped(kind) ? 'supply' : 'demand'} to compare the reference curve.`, { color: C.red, size: '78%' });
+    }
 
     if (st.adjust && changed) {
       const qd = m.qd(50), qs = m.qs(50), perPx = 110 / (P.b - P.t);
@@ -124,71 +144,10 @@
       ['Shift in Demand', EW.chg(delta, 'D_0', 'D_1') + extent(delta, false)],
       ['Price', EW.chg(dp, 'P_0', 'P_1')], ['Quantity', EW.chg(q - 50, 'Q_0', 'Q_1')], tr
     ];
-    const points = explain(kind, m);
-    const note = m.price
-      ? 'Model: straight curves (horizontal at infinity); elasticity is measured at E₀ and varies along the curve. For a finite shift, the actual TR/TE change can differ from the usual TR/TE rule based on initial PED, including when initial |PED| = 1. PES does not itself determine a TR rule.'
-      : `Model: the selected elasticity gives the proportional demand change at P₀. This shifts demand horizontally; the final equilibrium quantity change also depends on the fixed supply curve.${sizeMax(m.e, +st.dir) < 50 ? ` Change size is limited to ${sizeMax(m.e, +st.dir)}% at this elasticity and direction to keep quantity demanded at P₀ nonnegative.` : ''}`;
     return {
       result: EW.summary(rowsT),
-      notes: `<h2>Brief explanation</h2><ul>${points.map(t => `<li>${t}</li>`).join('')}</ul><p class="model-note">${note}</p>`,
-      desc: `${classify(kind, e)}. ${points.join(' ').replace(/<[^>]*>/g, '')}`,
+      desc: rowsT.map(r => r.join(': ')).join('. '),
     };
-  }
-
-  // Teaching text carried over from the original widgets (elasticity-explanations.js).
-  function explain(kind, s) {
-    const { e, shock, delta, p, q } = s, price = s.price, ped = kind === 'PED', pts = [];
-    const change = v => v > 0 ? 'increase' : 'decrease';
-    const degree = x => zero(Math.abs(x) - 1) ? 'equal proportionate' : Math.abs(x) < 1 ? 'less than proportionate' : 'more than proportionate';
-    const notation = x => {
-      const k = ped ? '|PED|' : kind;
-      if (x === Infinity) return k + ' = ∞';
-      if (zero(x) || zero(x - 1) || zero(x + 1)) return k + ' = ' + (x < 0 ? '−1' : zero(x) ? '0' : '1');
-      if (x > 0) return x < 1 ? '0 < ' + k + ' < 1' : k + ' > 1';
-      return x > -1 ? '−1 < ' + k + ' < 0' : k + ' < −1';
-    };
-    if (zero(shock)) {
-      pts.push(price ? `Select Increase or Decrease to apply a ${ped ? 'supply' : 'demand'} change.` : `Choose an increase or decrease, then set the size of the ${kind === 'XED' ? 'related-good price' : 'income'} change.`);
-      pts.push(`The selected elasticity describes the degree of responsiveness of ${price ? (ped ? 'quantity demanded' : 'quantity supplied') + ' to a change in the good’s own price.' : 'demand to a change in ' + (kind === 'XED' ? 'the price of the related good.' : 'income.')}`);
-      return pts;
-    }
-    if (price) {
-      const other = ped ? 'supply' : 'demand', up = shock > 0, dp = p - 50, dq = q - 50;
-      const dir = v => zero(v) ? 'remains unchanged' : v > 0 ? 'increases' : 'decreases';
-      pts.push(`${up ? 'An increase' : 'A decrease'} in ${other} shifts the ${other} curve ${up ? 'rightwards' : 'leftwards'}.`);
-      if (zero(e)) {
-        pts.push(`Since ${ped ? 'demand' : 'supply'} is <strong>perfectly price inelastic</strong>, ${ped ? 'quantity demanded' : 'quantity supplied'} remains unchanged despite the ${change(dp)} in price.`,
-          `Equilibrium price ${dir(dp)} and equilibrium quantity remains unchanged.`,
-          `Hence, overall <strong>TR/TE ${dir(s.tr1 - s.tr0)}</strong> only because price ${dir(dp)}.`);
-      } else if (e === Infinity) {
-        pts.push(`Since ${ped ? 'demand' : 'supply'} is <strong>perfectly price elastic</strong>, equilibrium price remains unchanged.`,
-          `The ${other} ${change(shock)} leads to ${up ? 'an increase' : 'a decrease'} in equilibrium quantity only.`,
-          `Hence, overall <strong>TR/TE ${dir(s.tr1 - s.tr0)}</strong> only because quantity ${dir(dq)}.`);
-      } else {
-        const cls = zero(e - 1) ? 'unit price elastic' : e < 1 ? 'price inelastic' : 'price elastic';
-        pts.push(`Since ${ped ? 'demand' : 'supply'} is <strong>${cls}</strong> at the initial equilibrium, ${dp > 0 ? 'an increase' : 'a decrease'} in price leads to ${zero(e - 1) ? 'an ' : 'a '}<strong>${degree(e)} ${change(dq)}</strong> in quantity ${ped ? 'demanded' : 'supplied'}.`,
-          `Equilibrium price ${dir(dp)} and equilibrium quantity ${dir(dq)}.`);
-        if (ped) {
-          const expected = zero(e - 1) ? 0 : Math.sign(dp) * (e < 1 ? 1 : -1), actual = zero(s.tr1 - s.tr0) ? 0 : Math.sign(s.tr1 - s.tr0);
-          if (expected !== actual) pts.push('The selected |PED| applies at the initial equilibrium and changes along this straight demand curve. The usual initial-elasticity TR/TE rule describes small price changes; the finite change shown has the following result.');
-          const a = Math.abs(s.priceEffect), b = Math.abs(s.quantityEffect), cmp = zero(a - b) ? 'equal to' : a > b ? 'greater than' : 'less than';
-          pts.push(`The ${s.priceEffect > 0 ? 'gain' : 'loss'} in TR/TE due to the ${change(dp)} in price is <strong>${cmp}</strong> the ${s.quantityEffect > 0 ? 'gain' : 'loss'} in TR/TE due to the ${change(dq)} in quantity. Hence, overall <strong>TR/TE ${dir(s.tr1 - s.tr0)}</strong>.`);
-        } else pts.push(`Hence, overall <strong>TR/TE ${dir(s.tr1 - s.tr0)}</strong> because price and quantity both ${shock > 0 ? 'increase' : 'decrease'}.`);
-      }
-      if (!ped) pts.push('In this model, the direction of the change in TR/TE depends on whether demand increases or decreases. PES determines the relative size of the price and quantity responses, rather than a separate TR/TE rule.');
-    } else {
-      const xed = kind === 'XED', driver = xed ? 'price of the related good' : 'income', dir = v => zero(v) ? 'remains unchanged' : v > 0 ? 'increases' : 'decreases';
-      pts.push(`${xed ? 'The ' + driver : 'Income'} ${dir(shock)}.`);
-      if (zero(e)) {
-        pts.push(xed ? 'Since <strong>XED = 0</strong>, the goods are unrelated. The change in the related good’s price does not change demand for this good.' : 'Since <strong>YED = 0</strong>, demand does not respond to the change in income.',
-          'The demand curve does not shift. With supply unchanged, equilibrium price and quantity remain unchanged.');
-      } else {
-        const rel = xed ? (e > 0 ? 'substitutes' : 'complements') : (e < 0 ? 'an inferior good' : e > 1 ? 'a normal good (luxury)' : zero(e - 1) ? 'a normal good' : 'a normal good (necessity)');
-        pts.push(`Since ${xed ? 'the goods are ' : 'this is '}${rel}, with <strong>${notation(e)}</strong>, ${shock > 0 ? 'an increase' : 'a decrease'} in ${driver} leads to ${zero(Math.abs(e) - 1) ? 'an ' : 'a '}<strong>${degree(e)} ${change(delta)}</strong> in demand${xed ? ' for this good' : ''}, at each given ${xed ? 'own ' : ''}price.`,
-          `The demand curve therefore shifts ${delta > 0 ? 'rightwards' : 'leftwards'}. With supply unchanged, equilibrium price and quantity both ${delta > 0 ? 'increase' : 'decrease'}.`);
-      }
-    }
-    return pts;
   }
 
   // Largest change size that keeps quantity demanded at P₀ nonnegative (XED/YED).
@@ -209,10 +168,14 @@
   for (const [kind, w] of Object.entries(widgets)) {
     const price = kind === 'PED' || kind === 'PES';
     const controls = price ? [
-      { type: 'slider', id: 'el', label: kind === 'PED' ? '|PED|' : 'PES', min: 0, max: 2, step: 0.01, value: 1, ticks: [[0, '0'], [1, '1'], [2, '∞']], format: v => classify(kind, toE(kind, v)) },
+      { type: 'slider', id: 'el', label: kind === 'PED' ? '|PED|' : 'PES', min: 0, max: 2, step: 0.01, value: 1, ticks: [[0, '0'], [1, '1'], [2, '∞']], format: v => classify(kind, toE(kind, v)),
+        onChange: st => { if (!st.refMoved) st.refEl = mirror(st.el); } },
       { type: 'radio', id: 'dir', label: `Change in ${w.other.toLowerCase()}`, value: '0', options: [['0', 'None'], ['-1', 'Decrease'], ['1', 'Increase']] },
       { type: 'check', id: 'adjust', label: 'Price adjustment' },
       { type: 'check', id: 'tr', label: 'Change in total revenue/expenditure', value: true },
+      { type: 'check', id: 'ref', label: 'Reference curve', value: false },
+      { type: 'slider', id: 'refEl', label: kind === 'PED' ? 'Reference |PED|' : 'Reference PES', min: 0, max: 2, step: 0.01, value: 0.67, ticks: [[0, '0'], [1, '1'], [2, '∞']],
+        format: v => classify(kind, toE(kind, v)), showIf: st => st.ref, onChange: st => { st.refMoved = true; } },
     ] : [
       { type: 'slider', id: 'el', label: kind, min: -3, max: 3, step: 0.1, value: 1, ticks: [[-3, '−3'], [-1, '−1'], [0, '0'], [1, '1'], [3, '3']], format: v => `${(+v).toFixed(1).replace('-', '−')} · ${classify(kind, v)}` },
       { type: 'radio', id: 'dir', label: w.driver, value: '1', options: [['-1', 'Decrease'], ['1', 'Increase']], onChange: st => { if (!st.size) st.size = 25; } },

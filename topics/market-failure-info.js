@@ -45,7 +45,6 @@
   EW.register({
     id: 'imperfect-information', title: 'Imperfect Information', plot, glossary: infoGlossary,
     glossaryNotes: { marginalSocialBenefit: notes.marginalSocialBenefit, marginalSocialCost: notes.marginalSocialCost },
-    about: '<p>No externalities, market power or other distortions. Only one private curve is mis-estimated at a time. The information error is a constant vertical gap, so curves shift in parallel. Curves are straight lines with equal axis scales. Output is traded at the perceived market equilibrium.</p>',
     controls: [
       { type: 'radio', id: 'type', label: 'Imperfect information about', options: [['mpc', 'MPC'], ['mpb', 'MPB']] },
       { type: 'slider', id: 'mag', label: 'Size of mis-estimation', min: -80, max: 80, ticks: [[-80, 'Underestimate'], [0, 'None'], [80, 'Overestimate']] },
@@ -73,13 +72,9 @@
         point(P, q, p, 'E_e', C.perceived, 'ii.market'); P.pLabel(p, 'P_e', { color: C.perceived }); P.qLabel(q, 'Q_e', { color: C.perceived, tip: 'ii.qe' });
         if (st.gap) gap(P, 50, q, over ? 'Overconsumption' : 'Underconsumption');
       }
-      const kind = cost ? 'costs' : 'benefits';
       const rows = infoRows(title, zero, cost, under, over);
-      const explanation = zero ? '<p>With <strong>no mis-estimation</strong>, perceived values equal actual values. Consumption occurs where <strong>MSB = MSC</strong>. There is no deadweight loss.</p>'
-        : `<p>Decision-makers <strong>${under ? 'underestimate' : 'overestimate'} private ${kind}</strong>, so perceived ${cost ? 'MPC' : 'MPB'} lies ${under ? 'below' : 'above'} its actual curve.</p><p>The market chooses E<sub>e</sub>, where <strong>perceived MPB = perceived MPC</strong>. Market output is ${over ? 'greater' : 'lower'} than the socially efficient output at E<sub>s</sub>, resulting in <strong>${over ? 'overconsumption' : 'underconsumption'}</strong>.</p><p>${over ? 'For the excess units, actual MSC exceeds actual MSB.' : 'For the missing units, actual MSB exceeds actual MSC, so potential net benefits are forgone.'} The area between actual MSB and MSC over these units is the <strong>deadweight loss</strong>.</p>`;
       return {
         result: EW.summary(rows),
-        notes: `<h2>How imperfect information causes market failure</h2>${explanation}`,
         desc: `${title}. ${zero ? 'No information error; market and efficient outcomes coincide.' : (over ? 'Overconsumption' : 'Underconsumption') + ' relative to socially efficient output.'}`,
       };
     },
@@ -103,10 +98,9 @@
     id: 'imperfect-information-measures', title: 'Government Measures: Imperfect Information', plot,
     glossary: [...infoGlossary, 'educationImperfectInformation', 'accurateInformationThroughLegislation', 'compulsoryConsumption', 'taxesAndSubsidies', 'taxRevenueAndSubsidyExpenditure'],
     glossaryNotes: notes,
-    about: '<p>No externalities, market power or other distortions. Only one private curve is mis-estimated at a time, with the same initial error size in each case. MPC is interpreted as a consumer-side private cost. Information policies correct perceptions; fiscal policies alter incentives without correcting beliefs. Tax revenue and subsidy expenditure are transfers; implementation costs and financing distortions are excluded. The information error is a constant vertical gap, so curves shift in parallel. Curves are straight lines with equal axis scales. Output is traded at the perceived market equilibrium.</p>',
     controls: [
-      { type: 'radio', id: 'case', label: 'Case', options: Object.entries(cases), onChange: st => { if (st.policy === 'compulsory' && !allowsCompulsory(st.case)) st.policy = 'education'; } },
-      { type: 'radio', id: 'policy', label: 'Policy', options: Object.entries(policyNames), onChange: st => { if (st.policy === 'compulsory' && !allowsCompulsory(st.case)) st.policy = 'education'; },
+      { type: 'select', id: 'case', label: 'Case', options: Object.entries(cases), onChange: st => { if (st.policy === 'compulsory' && !allowsCompulsory(st.case)) st.policy = 'education'; } },
+      { type: 'select', id: 'policy', label: 'Policy', options: Object.entries(policyNames), onChange: st => { if (st.policy === 'compulsory' && !allowsCompulsory(st.case)) st.policy = 'education'; },
         hint: st => allowsCompulsory(st.case) ? '' : 'Compulsory consumption applies only to underconsumption cases (overestimating MPC or underestimating MPB).' },
       { type: 'slider', id: 'correction', label: 'Extent of correction', min: 0, max: 100, ends: ['None', 'Full'], showIf: st => st.policy === 'education' || st.policy === 'information' },
       { type: 'slider', id: 'fiscal', label: 'Tax or subsidy', min: -60, max: 60, ticks: [[-60, 'Subsidy'], [0, 'None'], [60, 'Tax']], showIf: st => st.policy === 'fiscal' },
@@ -161,13 +155,8 @@
         ['Impact on Q_e/Q_s', `${T(outcome)}${m.compulsory ? ' — required at Q_s' : m.changed ? ' — Q_1 compared with Q_s' : ' — original market outcome'}`],
         ['Deadweight Loss', m.efficient ? 'Eliminated' : `${T(comparison)} relative to no intervention`],
         ['Perceptions', m.information ? (m.correction === 100 ? 'Fully Corrected' : m.correction === 0 ? 'Unchanged' : 'Partially Corrected') : 'Unchanged']];
-      let explanation;
-      if (m.information) explanation = `<p>${st.policy === 'education' ? 'Education and campaigns improve consumers’ understanding.' : 'Legislation requires accurate disclosure, labels or warnings; the slider represents how far consumers incorporate this information.'} Perceived ${own} moves towards actual ${own}.</p><p>The initial perceived curve and E<sub>e</sub> remain as references. As the error is corrected, consumption approaches Q<sub>s</sub> and <strong>DWL decreases</strong>. Full correction makes perceived and actual values coincide.</p>`;
-      else if (m.compulsory) explanation = '<p><strong>Compulsory consumption</strong> requires the socially efficient quantity Q<sub>s</sub>. The arrow starts at voluntary consumption Q<sub>e</sub> and ends at Q<sub>s</sub>.</p><p>Perceptions remain unchanged, so the original perceived curves and E<sub>e</sub> remain. The outline shows the <strong>DWL eliminated</strong>. Q<sub>s</sub> is a required quantity, not a new voluntary market equilibrium. Full compliance is assumed.</p>';
-      else explanation = `<p>A <strong>tax discourages consumption</strong>; a <strong>subsidy encourages consumption</strong>. In this ${own} case, the policy ${m.cost ? 'adds to or subtracts from perceived private cost' : 'subtracts from or adds to perceived private benefit'}.</p><p>The original perceived curve stays fixed. The effective private curve (violet) includes the tax or subsidy; <strong>beliefs and actual MSB/MSC remain unchanged</strong>. The corrective intervention is a <strong>${m.qe > 50 ? 'tax' : 'subsidy'}</strong>. Too much correction can move consumption past Q<sub>s</sub>, creating DWL on the other side; the wrong intervention makes the initial failure worse.</p><p>Tax revenue and subsidy expenditure are optional transfer areas, hidden by default. They are not included in the DWL calculation.</p>`;
       return {
         result: EW.summary(rows),
-        notes: `<h2>How the policy works</h2>${explanation}`,
         desc: `${cases[st.case]}. ${pname}. Consumption: ${outcome}.`,
       };
     },
@@ -197,7 +186,6 @@
   EW.register({
     id: 'guided-externalities', title: 'Externalities as a Source of Market Failure', guided: true, plot,
     glossary: ['externality', 'marginalPrivateBenefit', 'marginalPrivateCost', 'marginalExternalCost', 'marginalExternalBenefit', 'marginalSocialCost', 'marginalSocialBenefit', 'freeMarketEquilibrium', 'sociallyOptimalOutput', 'deadweightLoss', 'allocativeEfficiency'],
-    about: '<p>Marginal external costs or benefits are constant. Curves are illustrative; axis values and the externality magnitude are not quantified.</p><p>Negative (cigarettes): this example follows the cost-side representation, MSC = MPC + MEC. External benefits are absent, so MSB = MPB. The external harm arises from consumption.</p><p>Positive (vaccinations): MSB = MPB + MEB. External costs are absent, so MSC = MPC.</p>',
     controls: [{ type: 'radio', id: 'mode', label: 'Example', options: [['negative', 'Negative externalities'], ['positive', 'Positive externalities']], onChange: st => { st.step = 1; } }],
     steps: guidedSteps(stepTitles('Explain the externality'), extTexts),
     draw(P, st, C) {
@@ -239,7 +227,6 @@
   EW.register({
     id: 'guided-imperfect-information', title: 'Imperfect Information as a Source of Market Failure', guided: true, plot,
     glossary: ['imperfectInformation', 'perceivedMpb', 'actualMpb', 'perceivedMpc', 'actualMpc', 'myopia', 'marketEquilibriumImperfectInformation', 'sociallyOptimalOutput', 'overconsumptionAndUnderconsumption', 'deadweightLoss', 'allocativeEfficiency'],
-    about: '<p>Only one private curve is misestimated at a time. The information error is a fixed parallel shift. The other private curve is correctly estimated. Curves are illustrative; axis values are not quantified.</p><p>No externalities: MPB<sub>actual</sub> = MSB and MPC<sub>actual</sub> = MSC. Market decisions use perceived values; social welfare depends on actual values. The examples isolate imperfect information even where externalities may also exist in practice.</p>',
     controls: [{ type: 'radio', id: 'mode', label: 'Case', options: Object.entries(cases), onChange: st => { st.step = 1; } }],
     steps: guidedSteps(stepTitles('Explain the imperfect information'), infoTexts),
     draw(P, st, C) {
