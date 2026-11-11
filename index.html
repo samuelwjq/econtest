@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="ew.css">
 <style>
 /* Index page only. Everything is scoped to #menu / body:not(.in-widget) so the widget pages are untouched. */
-:root { --blue: #1556b8; --red: #d62d1a; }
+:root { --blue: #1556b8; --red: #d62d1a; --line: #2a2a2a; }
 
 /* Very faint graph-paper grid behind the index (the widget pages keep the plain background). */
 body:not(.in-widget) {
@@ -23,18 +23,17 @@ body:not(.in-widget) {
 #menu { max-width: 720px; padding: 24px 16px 56px; }
 
 /* Header */
-.site-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.site-head { margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 #menu .site-head h1 { font: 400 28px/1.15 var(--serif); color: var(--ink); margin: 0; }
-.head-diagram { flex: none; width: 92px; height: 69px; }
+.head-diagram { flex: none; width: 150px; height: 112px; }
 .head-diagram .axis { stroke: var(--ink); stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-.head-diagram .curve { fill: none; stroke-width: 3.5; stroke-dasharray: 1 1; stroke-dashoffset: 0; animation: draw 1.5s ease-out both; }
+.head-diagram .curve { fill: none; stroke-width: 3.5; stroke-dasharray: 1 1; stroke-dashoffset: 0; animation: draw 4s ease-in-out both; }
 .head-diagram .d { stroke: var(--blue); }
 .head-diagram .s { stroke: var(--red); }
 @keyframes draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
-#menu .lede { margin: 10px 0 8px; max-width: 60ch; }
 
 /* Sticky "Jump to" bar */
-#topic-bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; margin: 0 -16px; padding: 0 8px; background: var(--bg); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+#topic-bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; margin: 0 -16px; padding: 0 8px; background: var(--bg); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 #topic-bar a { position: relative; display: inline-flex; align-items: center; min-height: 44px; padding: 0 7px; font-size: 15px; color: var(--blue); text-decoration: none; white-space: nowrap; }
 #topic-bar a:not(:last-child)::after { content: "\00b7"; position: absolute; right: -3px; color: var(--muted); }
 #topic-bar a:hover { text-decoration: underline; }
@@ -42,9 +41,9 @@ body:not(.in-widget) {
 
 /* Categories and topics */
 .cat { scroll-margin-top: 48px; padding-top: 22px; }
-#menu .cat-title { font: 400 22px/1.2 var(--serif); color: var(--blue); margin: 0 0 8px; padding: 0; border: 0; }
-.tp { border-top: 1px solid var(--rule); }
-.cat > .tp:last-child, .cat > .pending:last-child { border-bottom: 1px solid var(--rule); }
+#menu .cat-title { font: 400 22px/1.2 var(--serif); color: var(--ink); margin: 0 0 8px; padding: 0; border: 0; }
+.tp { border-top: 1px solid var(--line); }
+.cat > .tp:last-child, .cat > .pending:last-child { border-bottom: 1px solid var(--line); }
 .tp summary { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 4px; cursor: pointer; list-style: none; font: 400 17px/1.3 var(--serif); }
 .tp summary::-webkit-details-marker { display: none; }
 .tp summary:hover .tname { text-decoration: underline; text-underline-offset: 3px; }
@@ -52,20 +51,20 @@ body:not(.in-widget) {
 .arrow { flex: none; width: 0; height: 0; border-style: solid; border-width: 6px 0 6px 9px; border-color: transparent transparent transparent var(--blue); transition: transform .2s ease; }
 .tp.is-open .arrow { transform: rotate(90deg); border-left-color: var(--red); }
 .count { color: var(--muted); font-family: var(--sans); font-size: 15px; }
-.pending { margin: 0; padding: 12px 4px; border-top: 1px solid var(--rule); color: var(--muted); }
+.pending { margin: 0; padding: 12px 4px; border-top: 1px solid var(--line); color: var(--muted); }
 
 /* Widget rows */
 #menu .rows { overflow: hidden; margin: 0; padding: 0; }
-#menu .rows li { padding: 0; border-top: 1px solid var(--rule); }
+#menu .rows li { padding: 0; border-top: 1px solid var(--line); }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 6px 4px 6px 25px; font-size: 16px; line-height: 1.3; color: var(--blue); text-decoration: none; }
 .row:hover .rname { text-decoration: underline; text-underline-offset: 3px; }
 .row:active { color: var(--red); }
-.row .tag { color: var(--blue); }
+.row .tag { color: var(--red); border-color: var(--red); }
 
 @media (min-width: 720px) {
   #menu { padding-top: 40px; }
   #menu .site-head h1 { font-size: 34px; }
-  .head-diagram { width: 124px; height: 93px; }
+  .head-diagram { width: 220px; height: 165px; }
   #topic-bar { margin: 0; padding: 0; }
   #topic-bar a { padding: 0 14px 0 0; margin-right: 14px; }
   #topic-bar a:not(:last-child)::after { right: -4px; }
@@ -88,7 +87,6 @@ body:not(.in-widget) {
       <path class="curve s" pathLength="1" d="M20 72Q62 60 106 12"/>
     </svg>
   </header>
-  <p class="lede">Interactive diagrams for lessons and revision. Widgets marked <span class="tag">Guided</span> are for teacher-led lessons; the rest are for independent practice.</p>
   <!-- ew.js requires this element when it starts; it is never shown. -->
   <input type="search" id="menu-search" hidden aria-hidden="true" tabindex="-1">
   <nav id="topic-bar" aria-label="Jump to"></nav>
