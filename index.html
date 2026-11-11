@@ -21,9 +21,10 @@ body:not(.in-widget) {
 #app[hidden] { display: none; }
 
 /* One font on the index only (widget pages keep the fonts set in ew.css). */
-#menu { --serif: Georgia, 'Noto Serif', 'Times New Roman', Times, serif; --sans: var(--serif); font-family: var(--serif); max-width: 720px; padding: 24px 16px 56px; }
+#menu { --serif: Georgia, 'Noto Serif', 'Times New Roman', Times, serif; --sans: var(--serif); font-family: var(--serif); max-width: 720px; padding: 0 16px 56px; }
 
-/* Header */
+/* Header and jump bar stay frozen at the top while the page scrolls. */
+.top { position: sticky; top: 0; z-index: 5; margin: 0 -16px; padding: 12px 16px 0; background: var(--bg); }
 .site-head { margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 #menu .site-head h1 { font: 400 28px/1.15 var(--serif); color: var(--ink); margin: 0; }
 .head-diagram { flex: none; width: 150px; height: 112px; }
@@ -33,8 +34,8 @@ body:not(.in-widget) {
 .head-diagram .s { stroke: var(--red); }
 @keyframes draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 
-/* Sticky "Jump to" bar */
-#topic-bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; margin: 0 -16px; padding: 0 8px; background: var(--bg); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+/* "Jump to" bar */
+#topic-bar { display: flex; flex-wrap: wrap; align-items: center; margin: 0 -16px; padding: 0 12px; background: var(--bg); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 #topic-bar .label { padding: 0 4px 0 7px; font-size: 15px; color: var(--muted); white-space: nowrap; }
 #topic-bar a { position: relative; display: inline-flex; align-items: center; min-height: 44px; padding: 0 7px; font-size: 15px; color: var(--blue); text-decoration: none; white-space: nowrap; }
 #topic-bar a:not(:last-child)::after { content: "\00b7"; position: absolute; right: -3px; color: var(--muted); }
@@ -42,9 +43,9 @@ body:not(.in-widget) {
 #topic-bar a:active { color: var(--red); }
 
 /* Categories and topics */
-.cat { scroll-margin-top: 48px; padding-top: 22px; }
-#menu .cat-title { font: 400 22px/1.2 var(--serif); color: var(--ink); margin: 0 0 4px; padding: 0 0 6px; border: 0; border-bottom: 4px solid var(--ink); }
-.tp summary { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 4px; cursor: pointer; list-style: none; font: 700 17px/1.3 var(--serif); }
+.cat { scroll-margin-top: calc(var(--top-h, 200px) + 4px); padding-top: 22px; }
+#menu .cat-title { font: 700 22px/1.2 var(--serif); color: var(--ink); margin: 0 0 4px; padding: 0 0 6px; border: 0; border-bottom: 3px solid var(--ink); }
+.tp summary { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 4px; cursor: pointer; list-style: none; font: 400 17px/1.3 var(--serif); }
 .tp summary::-webkit-details-marker { display: none; }
 .tp summary:hover .tname { text-decoration: underline; text-underline-offset: 3px; }
 .tp summary:focus-visible, .row:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
@@ -55,14 +56,13 @@ body:not(.in-widget) {
 
 /* Widget rows */
 #menu .rows { overflow: hidden; margin: 0; padding: 0; }
-#menu .rows li { padding: 0; border-top: 1px solid var(--line); }
-.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 6px 4px 6px 25px; font-size: 16px; font-weight: 600; line-height: 1.3; color: var(--blue); text-decoration: none; }
+#menu .rows li { padding: 0; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 6px 4px 6px 25px; font-size: 16px; line-height: 1.3; color: var(--blue); text-decoration: none; }
 .row:hover .rname { text-decoration: underline; text-underline-offset: 3px; }
 .row:active { color: var(--red); }
 .row .tag { font-weight: 400; color: var(--red); border-color: var(--red); }
 
 @media (max-width: 719px) {
-  #topic-bar { padding: 0 6px; }
   #topic-bar .label, #topic-bar a { font-size: 13px; }
   #topic-bar .label { padding: 0 2px 0 4px; }
   #topic-bar a { padding: 0 4px; }
@@ -70,7 +70,7 @@ body:not(.in-widget) {
 }
 
 @media (min-width: 720px) {
-  #menu { padding-top: 40px; }
+  .top { margin: 0; padding: 32px 0 0; }
   #menu .site-head h1 { font-size: 34px; }
   .head-diagram { width: 220px; height: 165px; }
   #topic-bar { margin: 0; padding: 0; }
@@ -88,6 +88,7 @@ body:not(.in-widget) {
 <body>
 
 <main id="menu">
+  <div class="top">
   <header class="site-head">
     <h1>Economics Diagrams</h1>
     <svg class="head-diagram" viewBox="0 0 120 90" aria-hidden="true" focusable="false">
@@ -96,9 +97,10 @@ body:not(.in-widget) {
       <path class="curve s" pathLength="1" d="M20 72Q62 60 106 12"/>
     </svg>
   </header>
+  <nav id="topic-bar" aria-label="Jump to"></nav>
+  </div>
   <!-- ew.js requires this element when it starts; it is never shown. -->
   <input type="search" id="menu-search" hidden aria-hidden="true" tabindex="-1">
-  <nav id="topic-bar" aria-label="Jump to"></nav>
   <div id="menu-list"></div>
 </main>
 
@@ -238,6 +240,10 @@ jump.addEventListener('click', e => {
   e.preventDefault();
   document.getElementById(a.getAttribute('href').slice(1)).scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth', block: 'start' });
 });
+
+// Jump targets stop below the frozen header and jump bar.
+const topBlock = document.querySelector('.top');
+new ResizeObserver(() => document.getElementById('menu').style.setProperty('--top-h', topBlock.offsetHeight + 'px')).observe(topBlock);
 
 // Toggles: <details> keeps tap and keyboard behaviour; the list height is animated on top of it.
 document.querySelectorAll('#menu-list details.tp').forEach(d => {
