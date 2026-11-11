@@ -20,7 +20,8 @@ body:not(.in-widget) {
 /* ew.css sets display on #app, which overrides the hidden attribute and showed the widget header under the index. */
 #app[hidden] { display: none; }
 
-#menu { max-width: 720px; padding: 24px 16px 56px; }
+/* One font on the index only (widget pages keep the fonts set in ew.css). */
+#menu { --serif: Georgia, 'Noto Serif', 'Times New Roman', Times, serif; --sans: var(--serif); font-family: var(--serif); max-width: 720px; padding: 24px 16px 56px; }
 
 /* Header */
 .site-head { margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
@@ -34,6 +35,7 @@ body:not(.in-widget) {
 
 /* Sticky "Jump to" bar */
 #topic-bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; margin: 0 -16px; padding: 0 8px; background: var(--bg); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+#topic-bar .label { padding: 0 4px 0 7px; font-size: 15px; color: var(--muted); white-space: nowrap; }
 #topic-bar a { position: relative; display: inline-flex; align-items: center; min-height: 44px; padding: 0 7px; font-size: 15px; color: var(--blue); text-decoration: none; white-space: nowrap; }
 #topic-bar a:not(:last-child)::after { content: "\00b7"; position: absolute; right: -3px; color: var(--muted); }
 #topic-bar a:hover { text-decoration: underline; }
@@ -41,31 +43,38 @@ body:not(.in-widget) {
 
 /* Categories and topics */
 .cat { scroll-margin-top: 48px; padding-top: 22px; }
-#menu .cat-title { font: 400 22px/1.2 var(--serif); color: var(--ink); margin: 0 0 8px; padding: 0; border: 0; }
-.tp { border-top: 1px solid var(--line); }
-.cat > .tp:last-child, .cat > .pending:last-child { border-bottom: 1px solid var(--line); }
-.tp summary { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 4px; cursor: pointer; list-style: none; font: 400 17px/1.3 var(--serif); }
+#menu .cat-title { font: 400 22px/1.2 var(--serif); color: var(--ink); margin: 0 0 4px; padding: 0 0 6px; border: 0; border-bottom: 4px solid var(--ink); }
+.tp summary { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 4px; cursor: pointer; list-style: none; font: 700 17px/1.3 var(--serif); }
 .tp summary::-webkit-details-marker { display: none; }
 .tp summary:hover .tname { text-decoration: underline; text-underline-offset: 3px; }
 .tp summary:focus-visible, .row:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
 .arrow { flex: none; width: 0; height: 0; border-style: solid; border-width: 6px 0 6px 9px; border-color: transparent transparent transparent var(--blue); transition: transform .2s ease; }
 .tp.is-open .arrow { transform: rotate(90deg); border-left-color: var(--red); }
-.count { color: var(--muted); font-family: var(--sans); font-size: 15px; }
-.pending { margin: 0; padding: 12px 4px; border-top: 1px solid var(--line); color: var(--muted); }
+.count { font-weight: 400; color: var(--muted); font-family: var(--sans); font-size: 15px; }
+.pending { margin: 0; padding: 12px 4px; color: var(--muted); }
 
 /* Widget rows */
 #menu .rows { overflow: hidden; margin: 0; padding: 0; }
 #menu .rows li { padding: 0; border-top: 1px solid var(--line); }
-.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 6px 4px 6px 25px; font-size: 16px; line-height: 1.3; color: var(--blue); text-decoration: none; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 6px 4px 6px 25px; font-size: 16px; font-weight: 600; line-height: 1.3; color: var(--blue); text-decoration: none; }
 .row:hover .rname { text-decoration: underline; text-underline-offset: 3px; }
 .row:active { color: var(--red); }
-.row .tag { color: var(--red); border-color: var(--red); }
+.row .tag { font-weight: 400; color: var(--red); border-color: var(--red); }
+
+@media (max-width: 719px) {
+  #topic-bar { padding: 0 6px; }
+  #topic-bar .label, #topic-bar a { font-size: 13px; }
+  #topic-bar .label { padding: 0 2px 0 4px; }
+  #topic-bar a { padding: 0 4px; }
+  #topic-bar a:not(:last-child)::after { right: -2px; }
+}
 
 @media (min-width: 720px) {
   #menu { padding-top: 40px; }
   #menu .site-head h1 { font-size: 34px; }
   .head-diagram { width: 220px; height: 165px; }
   #topic-bar { margin: 0; padding: 0; }
+  #topic-bar .label { padding: 0 14px 0 0; }
   #topic-bar a { padding: 0 14px 0 0; margin-right: 14px; }
   #topic-bar a:not(:last-child)::after { right: -4px; }
 }
@@ -202,27 +211,27 @@ const MENU = [
 EW.start(MENU);
 
 // The index layout below replaces the menu ew.js just built. Topics 6 and 10 are not listed here, so they are never shown.
-const CATS = [['General', [1]], ['Micro', [2, 3, 4, 5]], ['Macro', [7, 8, 9]], ['Firms & Decisions', [11]]];
+// [jump-bar label, section heading, topic numbers]
+const CATS = [['General', 'General', [1]], ['Micro', 'Microeconomics', [2, 3, 4, 5]], ['Macro', 'Macroeconomics', [7, 8, 9]], ['Firms & Decisions', 'Firms & Decisions', [11]]];
 const SLUGS = ['general', 'micro', 'macro', 'firms'];
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const topicNo = t => +(t.match(/^Topic (\d+)/)?.[1]);
-const topicName = t => t.replace(/^Topic \d+:\s*/, '');
 const link = ref => ref.endsWith('.html') ? ref : '#' + ref;   // same rule as ew.js
 const byNo = new Map(MENU.map(t => [topicNo(t[0]), t]));
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
-document.getElementById('menu-list').innerHTML = CATS.map(([cat, nos], i) =>
+document.getElementById('menu-list').innerHTML = CATS.map(([, cat, nos], i) =>
   `<section class="cat" id="cat-${SLUGS[i]}"><h2 class="cat-title">${esc(cat)}</h2>` + nos.map(n => {
     const t = byNo.get(n);
     if (!t) return `<p class="pending">Topic ${n} coming soon.</p>`;
-    return `<details class="tp"><summary><span class="arrow" aria-hidden="true"></span><span><span class="tname">${esc(topicName(t[0]))}</span> <span class="count">(${t[1].length})</span></span></summary>` +
+    return `<details class="tp"><summary><span class="arrow" aria-hidden="true"></span><span><span class="tname">${esc(t[0])}</span> <span class="count">(${t[1].length})</span></span></summary>` +
       `<ul class="rows">${t[1].map(([ref, name, guided]) =>
         `<li><a class="row" href="${esc(link(ref))}"><span class="rname">${esc(name)}</span>${guided ? '<span class="tag">Guided</span>' : ''}</a></li>`).join('')}</ul></details>`;
   }).join('') + '</section>').join('');
 
 // Jump bar: scrolls without touching the URL hash (the hash is the widget route).
 const jump = document.getElementById('topic-bar');
-jump.innerHTML = CATS.map(([cat], i) => `<a href="#cat-${SLUGS[i]}">${esc(cat)}</a>`).join('');
+jump.innerHTML = '<span class="label">Jump to:</span>' + CATS.map(([short], i) => `<a href="#cat-${SLUGS[i]}">${esc(short)}</a>`).join('');
 jump.addEventListener('click', e => {
   const a = e.target.closest('a');
   if (!a) return;
