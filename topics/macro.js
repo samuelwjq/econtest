@@ -211,7 +211,7 @@
     glossaryNotes: { shortRunAggregateSupply: 'This control holds productive capacity fixed.', longRunAggregateSupply: 'This control holds the horizontal section’s price level fixed.', multiplierEffect: 'The No further rounds–Large control is illustrative. No further rounds retains the initial spending change; larger settings add induced consumption.' },
     controls: [
       { type: 'radio', id: 'initial', label: 'Initial equilibrium', options: initialOptions },
-      { type: 'slider', id: 'adShift', label: 'Initial AD change', min: -100, max: 100, ends: ['Decrease', 'Increase'], hint: 'Initial autonomous spending change before the multiplier effect.' },
+      { type: 'slider', id: 'adShift', label: 'Initial AD change', min: -100, max: 100, ends: ['Decrease', 'Increase'], hintVisible: true, hint: 'Initial autonomous spending change before the multiplier effect.' },
       multiplierSlider,
       { type: 'slider', id: 'cop', label: 'Cost of production (COP)', min: -100, max: 100, ends: ['Decrease', 'Increase'] },
       { type: 'slider', id: 'capacity', label: 'Productive capacity', min: -100, max: 100, ends: ['Decrease', 'Increase'] },

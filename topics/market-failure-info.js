@@ -101,7 +101,7 @@
     controls: [
       { type: 'select', id: 'case', label: 'Case', options: Object.entries(cases), onChange: st => { if (st.policy === 'compulsory' && !allowsCompulsory(st.case)) st.policy = 'education'; } },
       { type: 'select', id: 'policy', label: 'Policy', options: Object.entries(policyNames), onChange: st => { if (st.policy === 'compulsory' && !allowsCompulsory(st.case)) st.policy = 'education'; },
-        hint: st => allowsCompulsory(st.case) ? '' : 'Compulsory consumption applies only to underconsumption cases (overestimating MPC or underestimating MPB).' },
+        hintVisible: true, hint: st => allowsCompulsory(st.case) ? '' : 'Compulsory consumption applies only to underconsumption cases (overestimating MPC or underestimating MPB).' },
       { type: 'slider', id: 'correction', label: 'Extent of correction', min: 0, max: 100, ends: ['None', 'Full'], showIf: st => st.policy === 'education' || st.policy === 'information' },
       { type: 'slider', id: 'fiscal', label: 'Tax or subsidy', min: -60, max: 60, ticks: [[-60, 'Subsidy'], [0, 'None'], [60, 'Tax']], showIf: st => st.policy === 'fiscal' },
       { type: 'check', id: 'dwl', label: 'Deadweight loss', value: true },

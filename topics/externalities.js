@@ -150,7 +150,7 @@
       { type: 'slider', id: 'rd', label: 'MEC reduction (R&D)', min: 0, max: 40, ends: ['Low', 'High'], showIf: st => st.policy === 'rd' },
       { type: 'slider', id: 'edu', label: 'Campaign effectiveness', min: 0, max: 60, ends: ['Zero', 'Highly effective'], showIf: st => st.policy === 'edu' },
       { type: 'slider', id: 'banMec', label: 'Marginal external cost (MEC)', min: 0, max: 120, value: MEC, ends: ['None', 'Very high'], showIf: st => st.policy === 'ban',
-        hint: 'A ban fixes output at no output. Vary MEC to compare a ban with the unregulated market at the same MEC.' },
+        hintVisible: true, hint: 'A ban fixes output at no output. Vary MEC to compare a ban with the unregulated market at the same MEC.' },
       { type: 'check', id: 'banCompare', label: 'Show free-market DWL for comparison', value: true, showIf: st => st.policy === 'ban' },
       { type: 'check', id: 'dwl', label: 'Deadweight loss', value: true },
       { type: 'check', id: 'gap', label: 'Over-production', value: true },
