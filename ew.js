@@ -74,10 +74,11 @@ const EW = (() => {
 
   /* ---------- Plot: maps economic values to the SVG and draws in data coordinates ---------- */
   class Plot {
-    constructor(svg, { x = [0, 100], y = [0, 100], box = [80, 30, 500, 450] } = {}) {
+    constructor(svg, { x = [0, 100], y = [0, 100], box = [80, 30, 500, 450] } = {}, parent = null) {
       this.svg = svg; this.x = x; this.y = y;
       [this.l, this.t, this.r, this.b] = box;
-      this.defs = svgEl('defs', {}, svg);
+      this.defs = parent ? parent.defs : svgEl('defs', {}, svg);
+      this.siblings = [];
       this.g = svgEl('g', {}, svg);
       this.segs = [];     // drawn lines that labels must not cross: {seg, kind: 'curve' | 'guide'}
       this.boxes = [];    // text already on the diagram
@@ -88,6 +89,8 @@ const EW = (() => {
       this.dots = [];   // marked points; a label must stay nearer its own point than any other
       this.partName = null;
     }
+    // A second diagram beside this one (e.g. market and firm). It is drawn with its own scales and finished with this plot.
+    panel(opts) { const p = new Plot(this.svg, opts, this); this.siblings.push(p); return p; }
     // Guided widgets: everything drawn after part('gap') is tagged as part of the "gap" so steps can highlight it.
     part(name) { this.partName = name; }
     X(q) { return this.l + (q - this.x[0]) / (this.x[1] - this.x[0]) * (this.r - this.l); }
@@ -283,6 +286,7 @@ const EW = (() => {
       }
     }
     finish() {
+      for (const p of this.siblings) p.finish();
       this.partName = null;
       this.layoutAxis('p'); this.layoutAxis('q'); this.changeY = this.placeChanges(); this.placeSpans(); this.placePoints();
       this.partName = null;
@@ -360,7 +364,7 @@ const EW = (() => {
         if (c.format) $('#r-' + c.id).innerHTML = c.format(state[c.id], state);
       }
       const hint = $('#h-' + c.id);
-      if (hint) hint.innerHTML = val(c.hint, state);
+      if (hint) { const text = val(c.hint, state) || ''; hint.innerHTML = text; const q = hint.closest('.qm'); if (q) q.hidden = !text; }
     }
     $('#c-tips').checked = state.tips;
   }
@@ -385,7 +389,9 @@ const EW = (() => {
   function render() {
     hideTip();
     svg.querySelectorAll(':scope > :not(title, desc)').forEach(e => e.remove());
-    const plot = new Plot(svg, def.plot);
+    const [vw, vh] = def.view ? def.view(state) : [600, 520];   // a widget may widen the canvas, e.g. for two diagrams side by side
+    svg.setAttribute('viewBox', `0 0 ${vw} ${vh}`);
+    const plot = new Plot(svg, typeof def.plot === 'function' ? def.plot(state) : def.plot);
     const out = def.draw(plot, state, C) || {};
     plot.finish();
     if (out.focus) plot.mute(out.focus);
@@ -433,7 +439,13 @@ const EW = (() => {
     for (const c of def.controls) {
       const n = controlEl(c);
       n.id = 'ctl-' + c.id;
-      if (c.hint) n.append(html('p', { class: 'hint', id: 'h-' + c.id }));
+      if (c.hint && c.hintVisible) n.append(html('p', { class: 'hint', id: 'h-' + c.id }));   // conditional notes stay as visible text
+      else if (c.hint) {   // explainers sit behind a small "?" next to the label; they work whether or not diagram tooltips are on
+        const qm = html('span', { class: 'qm', tabindex: '0', role: 'button', 'aria-label': 'Explanation' }, `?<span class="qm-tip" role="tooltip" id="h-${c.id}"></span>`);
+        qm.hidden = true;
+        qm.addEventListener('click', ev => ev.preventDefault());   // a "?" inside a label must not activate the control
+        n.querySelector('.lbl').after(qm);
+      }
       n.addEventListener('input', e => readControl(c, e));
       box.append(n);
     }
@@ -538,6 +550,11 @@ const EW = (() => {
     'ad-as': 'aggregate demand supply equilibrium AD-AS GPL RNY', 'macro-issues': 'growth inflation unemployment deflation output gap demand-pull cost-push',
     'fiscal-policy': 'government spending tax budget expansionary contractionary multiplier', 'monetary-policy': 'interest rate exchange rate central bank depreciation appreciation',
     'supply-side-policy': 'education training research competition productivity grants',
+    'sr-costs': 'firms decisions cost curves marginal cost average cost AC MC AVC AFC fixed variable short run',
+    'scale-economies': 'firms decisions LRAC long run average cost internal external economies diseconomies of scale profit revenue',
+    'profit-max': 'firms decisions profit maximisation MC=MR marginal cost marginal revenue supernormal normal subnormal loss shut down natural monopoly market structure consumer surplus producer surplus',
+    'profit-guided': 'firms decisions profit maximisation draw diagram step by step guided MC=MR supernormal normal subnormal loss shut down',
+    'revenue-curves': 'firms decisions revenue AR MR demand market structure market power barriers to entry price taker price setter number of firms perfect competition monopoly oligopoly monopolistic competition',
   };
   function buildMenu(menu) {
     // Placeholder thumbnail: topic number over a generic axes-and-curves glyph (to be replaced by real mini-diagrams later).
