@@ -420,7 +420,7 @@ const EW = (() => {
     if (!def.steps) return;
     const n = def.steps.length;
     if (delta > 0 && state.step === n) { reset(); return; }
-    if (delta > 0 && def.canAdvance && !def.canAdvance(state)) { $('#step-msg').textContent = def.blockedMessage || ''; return; }
+    if (delta > 0 && def.canAdvance && !def.canAdvance(state)) { $('#step-msg').textContent = (typeof def.blockedMessage === 'function' ? def.blockedMessage(state) : def.blockedMessage) || ''; return; }
     state.step = Math.min(n, Math.max(1, state.step + delta));
     render();
   }
@@ -436,6 +436,8 @@ const EW = (() => {
     $('#stepper').hidden = !def.steps;
     glossaryShown = null;
     $('#controls').hidden = false;
+    // Guided widgets show their choices between the step title and the step text, so they are prominent; other widgets keep them in the Controls section.
+    if (def.steps) $('#step-text').before(box); else $('#controls-section .side-head').after(box);
     for (const c of def.controls) {
       const n = controlEl(c);
       n.id = 'ctl-' + c.id;
@@ -554,6 +556,7 @@ const EW = (() => {
     'scale-economies': 'firms decisions LRAC long run average cost internal external economies diseconomies of scale profit revenue',
     'profit-max': 'firms decisions profit maximisation MC=MR marginal cost marginal revenue supernormal normal subnormal loss shut down natural monopoly market structure consumer surplus producer surplus',
     'profit-guided': 'firms decisions profit maximisation draw diagram step by step guided MC=MR supernormal normal subnormal loss shut down',
+    'efficiency-welfare': 'firms decisions efficiency welfare allocative productive dynamic x-inefficiency deadweight loss consumer surplus producer surplus contestable markets barriers to entry market structure perfect competition monopoly oligopoly',
     'revenue-curves': 'firms decisions revenue AR MR demand market structure market power barriers to entry price taker price setter number of firms perfect competition monopoly oligopoly monopolistic competition',
   };
   function buildMenu(menu) {
