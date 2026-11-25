@@ -40,8 +40,8 @@
     const P0 = d + b * (PIV - q0), AC0 = c.ac(q0), AVC0 = c.avc(q0);
     return { q0, P0, AC0, AVC0, mr0: d + PIV * b - 2 * b * q0, profit: (P0 - AC0) * q0 };
   }
-  function solve(structure, Qv, h, F, dIn) {
-    const c = costModel(Qv, h, F), b = SLOPE[structure];
+  function solve(structure, Qv, h, F, dIn) { return solveB(costModel(Qv, h, F), SLOPE[structure], dIn, structure, F); }
+  function solveB(c, b, dIn, structure, F) {
     const dLo = bisect(d => q0Of(c, b, d) != null, 0, 300) + 1.5;
     const okHi = d => { const o = outcome(c, b, d); return o && o.q0 <= QLIM && o.P0 <= QLIM; };
     let dHi = dLo + 0.5;
@@ -56,13 +56,46 @@
   }
   const fromState = st => solve(st.structure, st.qv, st.hmin, st.fcAmt, st.dem);
 
+  // Area labels: each goes outside the areas (right of q₀, and right of t.minX if given) at the nearest spot that touches no curve, dot or other label, joined to its area by a solid light grey line.
+  function placeTags(P, tags, q0) {
+    const segHitsRect = ([x1, y1, x2, y2], r) => {
+      let t0 = 0, t1 = 1; const dx = x2 - x1, dy = y2 - y1;
+      for (const [pp, qq] of [[-dx, x1 - r.x], [dx, r.x + r.w - x1], [-dy, y1 - r.y], [dy, r.y + r.h - y1]]) {
+        if (Math.abs(pp) < 1e-9) { if (qq < 0) return false; continue; }
+        const t = qq / pp; if (pp < 0) { if (t > t1) return false; if (t > t0) t0 = t; } else { if (t < t0) return false; if (t < t1) t1 = t; }
+      }
+      return true;
+    };
+    for (const t of tags.sort((u, v) => v.ay - u.ay)) {
+      const startX = Math.max(q0, t.minX ?? 0);
+      const e = P.text([startX + 5, t.ay], t.text, { anchor: 'start', color: t.color, tip: t.tip, size: '85%', dy: 4 }), idx = P.boxes.length - 1;
+      const x0 = +e.getAttribute('x'), y0 = +e.getAttribute('y'), bb = e.getBBox(), ox = bb.x - x0, oy = bb.y - y0, pad = 3;
+      const [gx, gy] = P.pt([startX + 5, t.ay]), cands = [];
+      for (let qx = startX + 3; qx <= 118; qx += 2) for (let py = 3; py <= 117; py += 2) { const [cx, cy] = P.pt([qx, py]); cands.push([cx, cy, (cx - gx) ** 2 + (cy - gy) ** 2]); }
+      cands.sort((u, v) => u[2] - v[2]);
+      const others = P.boxes.filter((_, i) => i !== idx);
+      let best = null;
+      for (const [cx, cy] of cands) {
+        const r = { x: cx + ox - pad, y: cy + oy - pad, w: bb.width + 2 * pad, h: bb.height + 2 * pad };
+        if (r.x + r.w > (P.svg.viewBox.baseVal.width || 600) - 12) continue;
+        if (P.segs.some(sg => sg.kind === 'curve' && segHitsRect(sg.seg, r))) continue;
+        if (others.some(k => k.x < r.x + r.w && k.x + k.width > r.x && k.y < r.y + r.h && k.y + k.height > r.y)) continue;
+        best = [cx, cy]; break;
+      }
+      const [cx, cy] = best || [x0, y0];
+      e.setAttribute('x', cx); e.setAttribute('y', cy);
+      P.boxes[idx] = { x: cx + ox, y: cy + oy, width: bb.width, height: bb.height };
+      P.line([cx + ox - 2, cy + oy + bb.height / 2], P.pt([t.ax, t.ay]), { px: true, color: COL.lead, width: 1.2 });
+    }
+  }
+
   /* ---------- Drawing (shared by both widgets) ---------- */
   // o.step: guided step (1–7), or undefined for the unguided widget, which draws everything. o.tr / o.cs: optional overlays.
   function paint(P, C, m, o = {}) {
-    const guided = o.step != null, at = n => !guided || o.step >= n, { c, b, q0, P0, AC0, mr0 } = m, pc = m.structure === 'pc';
+    const guided = o.step != null, at = n => !guided || o.step >= n, S = o.stages || { rev: 2, cost: 3, q: 4, p: 5, ac: 6, profit: 7 }, { c, b, q0, P0, AC0, mr0 } = m, pc = m.structure === 'pc';
     const hasAVC = m.F > 0, normal = m.kind === 'normal';
     const part = name => { if (guided) P.part(name); };
-    const showProfit = guided ? at(7) : o.profit;
+    const showProfit = guided ? at(S.profit) : o.profit;
     P.axes('Price / Costs / Revenue', 'Output');
 
     // Shaded areas first, so the curves sit on top. Their word labels sit outside the areas, to the right of q₀, joined to the area by a light grey line.
@@ -100,7 +133,7 @@
     }
 
     // Revenue curves.
-    if (at(2)) {
+    if (at(S.rev)) {
       part('ar');
       if (pc) { P.line([0, P0], [XMAX, P0], { color: C.demand, tip: 'rev.arFlat' }); P.pointLabel([XMAX, P0], 'D=AR=MR', { color: C.demand, tip: 'rev.arFlat', prefer: 'ne' }); }
       else {
@@ -114,7 +147,7 @@
       }
     }
     // Cost curves.
-    if (at(3)) {
+    if (at(S.cost)) {
       part('ac');
       const ac = trace(c.ac, 0.5, XMAX);
       P.path(ac, { color: C.supply, tip: m.natural ? 'profit.acNatural' : 'cost.ac' });
@@ -133,17 +166,17 @@
 
     // q₀, with P₀, MC₀ and AC₀ on the vertical axis (equal values share one label) and dashed guides.
     const dash = { color: C.guide, width: 1.2, dash: '5 4' };
-    const topOf = Math.max(at(4) ? mr0 : 0, at(5) ? P0 : 0, at(6) ? AC0 : 0);
-    if (at(4)) {
+    const topOf = Math.max(at(S.q) ? mr0 : 0, at(S.p) ? P0 : 0, at(S.ac) ? AC0 : 0);
+    if (at(S.q)) {
       part('q0');
       P.line([q0, 0], [q0, topOf], dash);
       P.dot([q0, mr0], C.ink, 'profit.cross');
       P.qLabel(q0, 'q_0', { tip: 'profit.q0' });
     }
     const ent = [];
-    if (at(5)) ent.push({ v: P0, n: 'P_0', part: 'p0', tip: pc ? 'profit.p0pc' : 'profit.p0' });
-    if (at(4)) ent.push({ v: mr0, n: 'MC_0', part: 'q0', tip: 'profit.mc0' });
-    if (at(6)) ent.push({ v: AC0, n: 'AC_0', part: 'ac0', tip: 'profit.ac0' });
+    if (at(S.p)) ent.push({ v: P0, n: 'P_0', part: 'p0', tip: pc ? 'profit.p0pc' : 'profit.p0' });
+    if (at(S.q)) ent.push({ v: mr0, n: 'MC_0', part: 'q0', tip: 'profit.mc0' });
+    if (at(S.ac)) ent.push({ v: AC0, n: 'AC_0', part: 'ac0', tip: 'profit.ac0' });
     const groups = [];
     for (const e of ent) { const g = groups.find(x => Math.abs(x.v - e.v) < 0.8); g ? g.names.push(e.n) : groups.push({ v: e.v, names: [e.n], part: e.part, tip: e.tip }); }
     for (const g of groups) {
@@ -151,42 +184,14 @@
       P.line([0, g.v], [q0, g.v], dash);
       P.pLabel(g.v, g.names.join(' = '), { tip: g.tip });
     }
-    if (at(5)) { part('p0'); P.dot([q0, P0], C.demand, pc ? 'profit.p0pc' : 'profit.p0'); }
-    if (at(6)) { part('ac0'); P.dot([q0, AC0], C.supply, 'profit.ac0'); }
+    if (at(S.p)) { part('p0'); P.dot([q0, P0], C.demand, pc ? 'profit.p0pc' : 'profit.p0'); }
+    if (at(S.ac)) { part('ac0'); P.dot([q0, AC0], C.supply, 'profit.ac0'); }
     if (showProfit && normal) {
       part('profit');
       P.pointLabel([q0, P0], 'Normal Profit', { color: C.ink, tip: 'profit.normal', prefer: 'ne' });
     }
-    // Area labels: each goes outside the areas (right of q₀) at the nearest spot that touches no curve, dot or other label, joined to its area by a solid light grey line.
     part('profit');
-    const segHitsRect = ([x1, y1, x2, y2], r) => {
-      let t0 = 0, t1 = 1; const dx = x2 - x1, dy = y2 - y1;
-      for (const [pp, qq] of [[-dx, x1 - r.x], [dx, r.x + r.w - x1], [-dy, y1 - r.y], [dy, r.y + r.h - y1]]) {
-        if (Math.abs(pp) < 1e-9) { if (qq < 0) return false; continue; }
-        const t = qq / pp; if (pp < 0) { if (t > t1) return false; if (t > t0) t0 = t; } else { if (t < t0) return false; if (t < t1) t1 = t; }
-      }
-      return true;
-    };
-    for (const t of tags.sort((u, v) => v.ay - u.ay)) {
-      const e = P.text([q0 + 5, t.ay], t.text, { anchor: 'start', color: t.color, tip: t.tip, size: '85%', dy: 4 }), idx = P.boxes.length - 1;
-      const x0 = +e.getAttribute('x'), y0 = +e.getAttribute('y'), bb = e.getBBox(), ox = bb.x - x0, oy = bb.y - y0, pad = 3;
-      const [gx, gy] = P.pt([q0 + 5, t.ay]), cands = [];
-      for (let qx = q0 + 3; qx <= 118; qx += 2) for (let py = 3; py <= 117; py += 2) { const [cx, cy] = P.pt([qx, py]); cands.push([cx, cy, (cx - gx) ** 2 + (cy - gy) ** 2]); }
-      cands.sort((u, v) => u[2] - v[2]);
-      const others = P.boxes.filter((_, i) => i !== idx);
-      let best = null;
-      for (const [cx, cy] of cands) {
-        const r = { x: cx + ox - pad, y: cy + oy - pad, w: bb.width + 2 * pad, h: bb.height + 2 * pad };
-        if (r.x + r.w > 588) continue;
-        if (P.segs.some(sg => sg.kind === 'curve' && segHitsRect(sg.seg, r))) continue;
-        if (others.some(k => k.x < r.x + r.w && k.x + k.width > r.x && k.y < r.y + r.h && k.y + k.height > r.y)) continue;
-        best = [cx, cy]; break;
-      }
-      const [cx, cy] = best || [x0, y0];
-      e.setAttribute('x', cx); e.setAttribute('y', cy);
-      P.boxes[idx] = { x: cx + ox, y: cy + oy, width: bb.width, height: bb.height };
-      P.line([cx + ox - 2, cy + oy + bb.height / 2], P.pt([t.ax, t.ay]), { px: true, color: COL.lead, width: 1.2 });
-    }
+    placeTags(P, tags, q0);
   }
 
   /* ---------- Summary table ---------- */
@@ -258,65 +263,86 @@
   });
 
   /* ---------- Guided widget ---------- */
-  const CASES = [['super', 'Supernormal Profit'], ['normal', 'Normal Profit'], ['cont', 'Subnormal Profit: Continue Producing'], ['shut', 'Subnormal Profit: Shut Down']];
-  const G = { Qv: 55, h: 40, F: 1200 };
-  // Demand level for the chosen case, using the same model as the unguided widget (with a fixed cost, so AVC is a separate curve).
+  // Taught in the order used in class. Costs have no fixed cost (AC = AVC) until the last step, where a slider adds one.
+  const CASES = [['super', 'Supernormal Profit'], ['normal', 'Normal Profit'], ['sub', 'Subnormal Profit']];
+  const G = { Qv: 55, h: 40 };
+  const STAGES = { cost: 2, rev: 5, q: 6, p: 7, ac: 8, profit: 9 };
+  const fixedAt = st => st.step === 9 ? st.fcAmt : 0;   // the fixed cost applies only in the last step
+  // Demand level for the chosen case (found with no fixed cost), so the three cases are clear on screen.
+  // Demand slopes used in this widget. They are gentler than in the other widgets: with these cost curves a steeper AR would stay above AC wherever MC = MR,
+  // so a monopoly could not show normal or subnormal profit. The order (Perfect Competition < Monopolistic Competition < Oligopoly < Monopoly) is kept.
+  const GS = { pc: 0, mc: 0.10, oli: 0.18, mono: 0.30 };
   function guidedModel(st) {
-    const { dLo, dHi, dN, dS } = solve(st.structure, G.Qv, G.h, G.F, 50);
-    let d;
-    if (st.case === 'normal') d = dN;
-    else if (st.case === 'super') d = dN + 0.45 * (dHi - dN);
-    else if (st.case === 'cont') d = (dN + dS) / 2;
-    else d = Math.max(dLo + 0.2 * (dS - dLo), dS - 0.4 * (dN - dS));
-    return solve(st.structure, G.Qv, G.h, G.F, d);
+    const base = solveB(costModel(G.Qv, G.h, 0), GS[st.structure], 50, st.structure, 0), { dLo, dHi } = base, dn = base.dN ?? dLo;
+    const d = st.case === 'normal' ? dn : st.case === 'super' ? dn + 0.45 * (dHi - dn) : dLo + 0.1 * (dn - dLo);
+    return solveB(costModel(G.Qv, G.h, fixedAt(st)), GS[st.structure], d, st.structure, fixedAt(st));
   }
-  const SUB = { super: 'supernormal profit', normal: 'normal profit', cont: 'subnormal profit (loss) with AR ≥ AVC', shut: 'subnormal profit (loss) with AR < AVC' };
+  const SUB = { super: 'supernormal profit', normal: 'normal profit', sub: 'subnormal profit (loss)' };
+  const SLOPES = { pc: 'horizontal (the firm is a price taker, so D = AR = MR)', mc: 'gently downward-sloping', oli: 'steeper', mono: 'the steepest, since the firm is the only seller' };
+  const CASE_TXT = {
+    super: 'AR > AC at q₀, so TR > TC. AR sits above AC at the output where MC = MR.',
+    normal: 'AR = AC at q₀, so TR = TC. AR just touches AC at the output where MC = MR.',
+    sub: 'AR < AC at q₀, so TR < TC. AR sits below AC at the output where MC = MR.',
+  };
+  const CASE_SHORT = { super: 'AR > AC at q₀, so TR > TC.', normal: 'AR = AC at q₀, so TR = TC.', sub: 'AR < AC at q₀, so TR < TC.' };
+  const NOT_YET = '<em>Make a choice in the controls to continue.</em>';
+  // Each step: what (what to draw), why (bullets or text), remember (optional short line). Plain text with q₀, P₀ and so on, converted by sub().
+  const WHAT_AR = { super: 'above', normal: 'touching', sub: 'below' };
   const stepTexts = [
-    st => ['Draw the axes. Label the vertical axis “Price / Costs / Revenue” and the horizontal axis “Output”.',
-      'Revenue, cost and price are all measured per unit on the vertical axis, and the firm’s own output (q) is on the horizontal axis.',
-      'Writing “Quantity” or “Q” for a single firm’s output. Use lower-case q for a firm, because Q stands for the whole industry.'],
-    st => [st.structure === 'pc'
-      ? 'Draw a horizontal line at the market price, labelled D = AR = MR. The firm is a price taker.'
-      : `Draw a downward-sloping demand curve, labelled D = AR${st.structure === 'mc' ? ' (gently sloping, highly price elastic)' : st.structure === 'oli' ? ' (steeper, less price elastic)' : ' (the steepest, since the firm is the only seller)'}. Then draw MR below it, starting at the same point on the vertical axis and falling twice as fast.`,
-      st.structure === 'pc' ? 'A price taker sells every extra unit at the same price, so the extra revenue from one more unit equals the price: MR = AR.' : 'To sell more, the firm must lower its price on all units, so the extra revenue from one more unit is less than the price: MR < AR.',
-      st.structure === 'pc' ? 'Drawing a downward-sloping demand curve for a price taker.' : 'Drawing MR on top of AR, or with the same slope as AR. MR must fall twice as fast.'],
-    st => ['Draw the U-shaped AC and AVC curves, and the MC curve. MC falls at first, then rises, and cuts AVC and AC at their lowest points. AC is above AVC, and the gap between them is AFC.',
-      'Diminishing marginal returns make MC rise. MC pulls average cost down when MC < average cost and pulls it up when MC > average cost, so it must cut the average curves at their minimum points.',
-      'Drawing MC so that it does not cut AC at its minimum point.'],
-    st => ['Mark the point where MC = MR, and where MC cuts MR from below. Draw a dashed line down to the horizontal axis and label the output q₀.'.replace('q₀', 'q<sub>0</sub>'),
-      'Up to q₀, each extra unit adds more to revenue than to cost (MR > MC), so profit rises. Beyond q₀, each extra unit adds more to cost than to revenue (MC > MR), so profit falls. Profit is maximised at q₀.'.replace(/q₀/g, 'q<sub>0</sub>'),
-      'Choosing a point where MC = MR on the falling part of MC. There, MC cuts MR from above, and producing more units still raises profit.'.replace(/q₀/g, 'q<sub>0</sub>')],
-    st => ['From q₀, go up to the D = AR curve, then across to the vertical axis. Label this price P₀.'.replace('q₀', 'q<sub>0</sub>').replace('P₀', 'P<sub>0</sub>'),
-      st.structure === 'pc' ? 'The price is read from D = AR. For a price taker this is the market price, which is the same for every unit.' : 'Price is what consumers are willing to pay for q₀ units, so it is read from the D = AR curve, not from the MR curve.'.replace('q₀', 'q<sub>0</sub>'),
-      'Reading the price across from the point where MC = MR. That height is MR, not the price.'],
-    st => ['From q₀, go up to the AC curve, then across to the vertical axis. Label this cost AC₀.'.replace('q₀', 'q<sub>0</sub>').replace('AC₀', 'AC<sub>0</sub>'),
-      'AC₀ is the cost per unit when the firm produces q₀ units, so it is read from the AC curve.'.replace('q₀', 'q<sub>0</sub>').replace('AC₀', 'AC<sub>0</sub>'),
-      'Reading the cost per unit from the MC curve instead of the AC curve.'],
-    st => [{ super: 'Shade the rectangle between P₀ and AC₀, from 0 to q₀. This is supernormal profit, equal to (P₀ − AC₀) × q₀.', normal: 'P₀ and AC₀ are at the same height, so there is no profit rectangle to shade. Label the outcome normal profit.', cont: 'Shade the rectangle between AC₀ and P₀, from 0 to q₀. This is subnormal profit (a loss), equal to (AC₀ − P₀) × q₀.', shut: 'Shade the rectangle between AC₀ and P₀, from 0 to q₀. This is subnormal profit (a loss), equal to (AC₀ − P₀) × q₀.' }[st.case]
-      .replace(/q₀/g, 'q<sub>0</sub>').replace(/P₀/g, 'P<sub>0</sub>').replace(/AC₀/g, 'AC<sub>0</sub>'),
-      { super: 'P₀ > AC₀ means that revenue per unit is more than cost per unit, so TR > TC.', normal: 'P₀ = AC₀ means that TR = TC, so the firm earns just enough to stay in the industry.', cont: 'P₀ < AC₀ means that TR < TC. However, P₀ ≥ AVC₀, so TR ≥ TVC and the firm still covers its variable costs.', shut: 'P₀ < AC₀ means that TR < TC. Also, P₀ < AVC₀, so TR < TVC and the firm cannot even cover its variable costs.' }[st.case]
-      .replace(/q₀/g, 'q<sub>0</sub>').replace(/P₀/g, 'P<sub>0</sub>').replace(/AC₀/g, 'AC<sub>0</sub>').replace(/AVC₀/g, 'AVC<sub>0</sub>'),
-      'Shading the area under the price line (that is TR) or the whole area between MC and AR. Profit is the rectangle between P₀ and AC₀ only.'.replace(/P₀/g, 'P<sub>0</sub>').replace(/AC₀/g, 'AC<sub>0</sub>')],
+    () => ({ what: 'Draw the vertical axis, labelled “Price / Costs / Revenue”, and the horizontal axis, labelled “Output”.',
+      why: 'Revenue, cost and price are all per unit, so they share the vertical axis.',
+      remember: 'This is a firm-level diagram, so output is lower-case q. We assume no fixed costs, so AC = AVC.' }),
+    () => ({ what: ['U-shaped AC curve.', 'MC curve that cuts the AC curve at its minimum.'],
+      why: ['When MC is below AC, producing another unit reduces AC, so AC is downward sloping.', 'When MC is above AC, producing another unit increases AC, so AC is upward sloping.', 'Thus, MC = AC at its minimum point.'] }),
+    st => ({ what: 'Choose the market structure.',
+      why: 'The more market power a firm has, the less elastic its demand, and hence the steeper its AR curve.',
+      remember: st.structure ? `${NAMES[st.structure]}: AR is ${SLOPES[st.structure]}.` : NOT_YET }),
+    st => ({ what: 'Choose the profit case.',
+      why: 'AR is the price per unit and AC is the cost per unit, so comparing them shows the profit per unit.',
+      remember: st.case ? `${SUB[st.case][0].toUpperCase() + SUB[st.case].slice(1)}: ${CASE_SHORT[st.case]}` : NOT_YET }),
+    st => ({ what: st.structure === 'pc' ? `Draw one horizontal line, D = AR = MR, ${WHAT_AR[st.case]} the lowest point of AC.`
+        : `Draw a downward-sloping AR curve, then an MR curve from the same point on the vertical axis. Place AR ${WHAT_AR[st.case]} AC at the output where MC = MR.`,
+      why: st.structure === 'pc' ? 'A price taker sells every unit at the market price, so the extra revenue from one more unit equals the price.' : 'To sell more, the firm must lower the price on all units, so MR < AR.',
+      remember: st.structure === 'pc' ? 'AR = MR for a price taker.' : 'MR is twice as steep as AR.' }),
+    () => ({ what: 'Find where MC cuts MR. Draw a dashed line down to the horizontal axis and label q₀. Draw a dashed line across to the vertical axis to read MC₀.',
+      why: 'Firms produce at MC = MR to maximise profit. If MR > MC, producing more raises profit. If MR < MC, producing less raises profit.' }),
+    () => ({ what: 'From the MC = MR point, follow the same vertical line up to the D = AR curve. Draw a dashed line across to the vertical axis and label P₀.',
+      why: 'D = AR shows the most buyers are willing to pay for each unit, so the price is their willingness to pay at q₀.' }),
+    () => ({ what: 'From the MC = MR point, follow the same vertical line to the AC curve. Draw a dashed line across to the vertical axis and label AC₀.',
+      why: 'AC at q₀ is the cost per unit, so P₀ − AC₀ is the profit per unit.' }),
+    st => ({ what: { super: 'Shade the rectangle between AC₀ and P₀, from 0 to q₀.', normal: 'P₀ = AC₀, so there is no rectangle to shade. Label the outcome normal profit.', sub: 'Shade the rectangle between P₀ and AC₀, from 0 to q₀.' }[st.case],
+      why: 'Profit per unit multiplied by the number of units gives total profit.',
+      remember: { super: 'Supernormal profit = (P₀ − AC₀) × q₀. P₀ > AC₀, so TR > TC.', normal: 'Normal profit: (P₀ − AC₀) × q₀ = 0. P₀ = AC₀, so TR = TC.', sub: 'Subnormal profit (a loss) = (AC₀ − P₀) × q₀. P₀ < AC₀, so TR < TC.' }[st.case] }),
   ];
-  const STEP_TITLES = ['Draw the axes', 'Draw the revenue curves', 'Draw the cost curves', 'Find the profit-maximising output', 'Find the price', 'Find the average cost', 'Shade the profit or loss'];
-  const FOCUS = [[], ['ar', 'mr'], ['mc', 'ac', 'avc'], ['mc', 'mr', 'ar', 'q0'], ['ar', 'q0', 'p0'], ['ac', 'q0', 'p0', 'ac0'], ['profit', 'ar', 'ac', 'q0', 'p0', 'ac0']];
+  const STEP_TITLES = ['Draw the axes', 'Draw the MC and AC curves', 'Choose the market structure', 'Choose the profit case', 'Draw the AR and MR curves', 'Label the output (MC = MR)', 'Label the price', 'Label the average cost', 'Find the profit area'];
+  const FOCUS = [[], ['mc', 'ac', 'avc'], ['mc', 'ac', 'avc'], ['mc', 'ac', 'avc'], ['ar', 'mr', 'ac'], ['mc', 'mr', 'ar', 'q0'], ['ar', 'q0', 'p0'], ['ac', 'q0', 'p0', 'ac0'], ['profit', 'ar', 'ac', 'avc', 'q0', 'p0', 'ac0']];
+  const li = items => items.map(t => `<li>${t}</li>`).join('');
 
   EW.register({
     id: 'profit-guided', title: 'Draw the Profit Diagram', guided: true, plot, glossary,
     controls: [
-      { type: 'radio', id: 'structure', label: 'Market structure', options: STRUCTURES, value: 'pc', onChange: st => { st.step = 1; if (st.structure === 'mono' && st.case === 'shut') st.case = 'cont'; } },
-      { type: 'select', id: 'case', label: 'Profit case', options: st => st.structure === 'mono' ? CASES.slice(0, 3) : CASES, value: 'super', onChange: st => { st.step = 1; },
-        hintVisible: true, hint: st => st.structure === 'mono' ? 'The shut-down case is not shown for Monopoly: with demand this steep, price stays above AVC wherever MC = MR in this diagram.' : '' },
+      { type: 'radio', id: 'structure', label: 'Market structure', options: STRUCTURES, value: '', showIf: st => st.step >= 3 },
+      { type: 'radio', id: 'case', label: 'Profit case', options: CASES, value: '', showIf: st => st.step >= 4 },
+      { type: 'slider', id: 'fcAmt', label: 'Size of fixed cost', min: 0, max: 2400, value: 0, step: 100, ends: ['None', 'Significant'], showIf: st => st.step === 9 },
     ],
-    steps: STEP_TITLES.map((title, i) => ({ title, text: st => { const [what, why, mistake] = stepTexts[i](st);
-      return `<p><strong>What to draw:</strong> ${sub(what)}</p><p><strong>Why:</strong> ${sub(why)}</p><p class="think"><em><strong>Common mistake:</strong> ${sub(mistake)}</em></p>`; } })),
+    canAdvance: st => st.step === 3 ? !!st.structure : st.step === 4 ? !!st.case : true,
+    blockedMessage: st => st.step === 3 ? 'Choose a market structure first.' : 'Choose a profit case first.',
+    steps: STEP_TITLES.map((title, i) => ({ title, text: st => { const t = stepTexts[i](st), list = x => Array.isArray(x) ? `<ul>${sub(li(x))}</ul>` : `<p>${sub(x)}</p>`;
+      return `<p><strong>What to draw:</strong></p>${list(t.what)}<p><strong>Why:</strong></p>${list(t.why)}` + (t.remember ? `<p><strong>Remember:</strong> ${sub(t.remember)}</p>` : ''); } })),
     draw(P, st, C) {
-      const m = guidedModel(st), step = st.step;
-      paint(P, C, m, { step });
-      const out = { focus: FOCUS[step - 1], desc: `${NAMES[st.structure]}, ${SUB[st.case]}, step ${step}.` };
-      if (step === 7) { const rows = summaryRows(m); out.result = EW.summary(rows); out.desc += ' ' + describe(m, rows); }
+      const step = st.step, m = guidedModel({ structure: st.structure || 'pc', case: st.case || 'normal', step, fcAmt: st.fcAmt });
+      paint(P, C, m, { step, stages: STAGES });
+      const out = { focus: FOCUS[step - 1], desc: `Step ${step}: ${STEP_TITLES[step - 1]}. ${st.structure ? NAMES[st.structure] + '. ' : ''}${st.case ? SUB[st.case] + '.' : ''}` };
+      if (step === 9) {
+        const rows = summaryRows(m);
+        const note = m.F > 0
+          ? 'With fixed costs, q<sub>0</sub> and P<sub>0</sub> have not changed, because fixed costs do not affect MC or MR. AC is now above AVC (the orange curve), so AC<sub>0</sub>, the profit area and the short-run decision can change.'
+          : 'This diagram assumes no fixed costs. Use the slider below to see how fixed costs change the diagram. Then check what happens to the output and the price.';
+        out.result = EW.summary(rows) + `<p class="note">${note}</p>`; out.desc += ' ' + describe(m, rows);
+      }
       return out;
     },
   });
-  function sub(t) { return t.replace(/\b(q|P|AC|AVC)₀/g, '$1<sub>0</sub>'); }
+  function sub(t) { return t.replace(/\b(q|P|AC|AVC|MC)₀/g, '$1<sub>0</sub>'); }
+  EW.firms = { costModel, solveB, q0Of, outcome, bisect, trace, last, placeTags, COL, NAMES };   // shared with the efficiency and welfare widget
 })();
